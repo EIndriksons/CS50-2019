@@ -12,3 +12,7 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * Mario
     + [Less](/pset1/mario_less.c)
     + [More](/pset1/mario_more.c)
+- [Problem Set 2:](/pset2)
+  * [Caesar](/pset2/caesar.c)
+  * [Vigenère](/pset2/vigenere.c)
+  * [Crack](/pset2/crack.c)
