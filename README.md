@@ -16,3 +16,9 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * [Caesar](/pset2/caesar.c)
   * [Vigenère](/pset2/vigenere.c)
   * [Crack](/pset2/crack.c)
+- [Problem Set 3:](/pset3)
+  * [Whodunit](/pset3/whodunit.c)
+  * Resize
+    + [Less](/pset3/resize_less.c)
+    + [More](/pset3/resize_more.c)
+  * [Recover](/pset3/recover.c)
