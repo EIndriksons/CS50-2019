@@ -24,3 +24,5 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * [Recover](/pset3/recover.c)
 - [Problem Set 4:](/pset4)
   * [Speller [Hash]](/pset4/speller.c)
+- [Problem Set 5:](/pset5)
+  * [Homepage](/pset5/index.html)
