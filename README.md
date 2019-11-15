@@ -22,3 +22,5 @@ If you are a student of this course - please see the Course guidelines on [Acade
     + [Less](/pset3/resize_less.c)
     + [More](/pset3/resize_more.c)
   * [Recover](/pset3/recover.c)
+- [Problem Set 4:](/pset4)
+  * [Speller [Hash]](/pset4/speller.c)
