@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Change Password
+{% endblock %}
+
+{% block main %}
+    <h3 class="mb-4">Add Cash</h3>
+
+    <form action="/cash_add" method="post">
+        <div class="form-group">
+            <input name="cash" type="number" class="form-control" min="0" placeholder="Cash">
+        </div>
+
+        <div class="form-group">
+            <!-- http://getbootstrap.com/docs/4.1/components/buttons/ -->
+            <button class="btn btn-primary" type="submit">Add Cash</button>
+        </div>
+    </form>
+{% endblock %}

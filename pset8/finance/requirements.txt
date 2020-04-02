@@ -1,0 +1,5 @@
+cs50
+Flask
+Flask-Session
+requests
+sqlite3 [for quickly setting up database through finance.db.init.py]

@@ -40,3 +40,5 @@ If you are a student of this course - please see the Course guidelines on [Acade
 - [Problem Set 7:](/pset7)
   * [Similarities](/pset7/similarities)
   * [Survey](/pset7/survey)
+- [Problem Set 8:](/pset8)
+  * [Finance](/pset8/finance)

@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+    <!-- http://getbootstrap.com/docs/4.1/content/typography/ -->
+    <h3 class="mb-4">Search for a Stock</h3>
+
+    <form action="/quote" method="post" class="form-horizontal">
+        <div class="form-group">
+            <input name="symbol" autocomplete="off" type="text" autofocus class="form-control" placeholder="Symbol" required>
+        </div>
+
+        <div class="form-group">
+            <!-- http://getbootstrap.com/docs/4.1/components/buttons/ -->
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+{% endblock %}

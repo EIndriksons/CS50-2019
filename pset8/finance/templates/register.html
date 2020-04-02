@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <!-- http://getbootstrap.com/docs/4.1/content/typography/ -->
+    <h3 class="mb-4">Register New Account</h3>
+
+    <!-- http://getbootstrap.com/docs/4.1/components/forms/ -->
+    <form action="/register" method="post">
+
+        <div class="form-group">
+                <input name="username" autocomplete="off" type="text" autofocus class="form-control" id="inputUsername" placeholder="Username" required>
+                <div class="invalid-feedback">This Username is already taken!</div>
+        </div>
+
+        <div class="form-group">
+                <input name="password" type="password" id="inputPassword" class="form-control" aria-describedby="passwordHelpBlock" placeholder="Password">
+        </div>
+
+        <div class="form-group">
+                <input name="password2" type="password" id="inputPassword" class="form-control" aria-describedby="passwordHelpBlock" placeholder="Password (Again)">
+        </div>
+
+        <div class="form-group form-check">
+            <label>
+                <input name="confirmation" type="checkbox" class="form-check-input" id="exampleCheck1">
+                 Accept Terms & Conditions
+            </label>
+        </div>
+
+        <div class="form-group">
+            <!-- http://getbootstrap.com/docs/4.1/components/buttons/ -->
+            <button class="btn btn-primary" type="submit">Register</button>
+        </div>
+
+    </form>
+
+    <script type="text/javascript">
+        let input = document.querySelector('input[name="username"]'); // getting username value from input
+        let form = document.querySelector('form');                    // getting form
+
+        // on form submit preventDefault() i.e. prevent form from submission
+        // if this is done at a later point in the program - it is already too late as the form is submitted
+        form.onsubmit = function(event) {
+            event.preventDefault();
+
+            // make GET request
+            $.get('/check?username=' + input.value, function(data) {
+
+                // condition check
+                if(data == false) {
+                    // if username exists - alert
+                    input.classList.add('is-invalid')
+                }
+                else {
+                    // if username does not exist - submit the form through function
+                    input.classList.add('is-valid')
+                    form.submit();
+                }
+            });
+        }
+    </script>
+{% endblock %}
