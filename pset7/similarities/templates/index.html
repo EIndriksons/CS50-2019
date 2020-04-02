@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block body %}
+    <div class="col">
+        <form action="/compare" enctype="multipart/form-data" method="post">
+
+            <div class="form-group"><input name="file1" placeholder="File 1" type="file"/></div>
+            <div class="form-group"><input name="file2" placeholder="File 2" type="file"/></div>
+
+            <div class="form-group">
+                <select name="algorithm" onchange="hide(this);">
+                    <option value="lines">Lines</option>
+                    <option value="sentences">Sentences</option>
+                    <option value="substrings">Substrings</option>
+                </select>
+                <input id='box-input' min="1" name="length" placeholder="10" type="number" style="visibility:hidden;"/>
+            </div>
+
+            <div class="form-group"><button class = "btn btn-primary" type="submit">Compare</button></div>
+
+            <script type="text/javascript">
+                function hide(that) {
+                    if (that.value == 'substrings') {
+                        document.getElementById('box-input').style.visibility = 'visible';
+                    } else {
+                        document.getElementById('box-input').style.visibility = 'hidden';
+                    }
+                }
+            </script>
+
+        </form>
+    </div>
+{% endblock %}

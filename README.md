@@ -37,3 +37,6 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * [Vigenère](/pset6/vigenere.py)
   * [Crack](/pset6/crack.py)
   * [Bleep](/pset6/bleep.py)
+- [Problem Set 7:](/pset7)
+  * [Similarities](/pset7/similarities)
+  * [Survey](/pset7/survey)
