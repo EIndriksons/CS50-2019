@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Finance
+{% endblock %}
+
+{% block main %}
+    <div class="container">
+        <div class="float-left mb-2"><h3>Your Finance forms</h2></div>
+        <div class="float-right mb-2">
+            <!--<a class="btn btn-info btn" href="/create_new">Create New Form</a>-->
+            <button class="btn btn-info center-block" type="button" onclick="addForm()">Create New Form</button>
+        </div>
+    </div>
+    <table class="table table-hover" id="content">
+        <thead>
+            <tr>
+                <th>Nr</th>
+                <th>Date</th>
+                <th>Number</th>
+                <th>Status</th>
+                <th>Name Director</th>
+                <th>Name Accountant</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for finance in finances %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ finance.date }}</td>
+                    <td>{{ finance.number }}</td>
+                    {% if finance.status == "Draft" %}
+                        <td><span class="badge badge-pill badge-secondary">{{ finance.status }}</span></td>
+                    {% elif finance.status == "New" %}
+                        <td><span class="badge badge-pill badge-primary">{{ finance.status }}</span></td>
+                    {% elif finance.status == "In Progress" %}
+                        <td><span class="badge badge-pill badge-warning">{{ finance.status }}</span></td>
+                    {% elif finance.status == "Accepted" or finance.status == "Paid" %}
+                        <td><span class="badge badge-pill badge-success">{{ finance.status }}</span></td>
+                    {% elif finance.status == "Denied" %}
+                        <td><span class="badge badge-pill badge-danger">{{ finance.status }}</span></td>
+                    {% else %}
+                        <td><span class="badge badge-pill badge-light">{{ finance.status }}</span></td>
+                    {% endif %}
+                    <td>{{ finance.name_director }}</td>
+                    <td>{{ finance.name_accountant }}</td>
+                    <td>
+                        <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">Edit</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script type='text/javascript'>
+        function addForm() {
+            $.get('/create_form', function(data) {
+                if(data == true) {
+                    $('#content').load(document.URL + ' #content');
+                }
+                else {
+                    alert('Failed to Create New Form. Please contact the Admin if this happens again.')
+                }
+            });
+        };
+
+        $('tbody').find('tr').click( function() {
+            window.location = $(this).find('a').attr('href');
+        }).hover( function() {
+            $(this).toggleClass('hover');
+        });
+    </script>
+{% endblock %}

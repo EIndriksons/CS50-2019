@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Finance
+{% endblock %}
+
+{% block main %}
+    <!--<div class="container">-->
+    <!--<div class="mb-4"><h3>Create New form</h2></div>-->
+    <!--</div>-->
+
+    <form action="/finance/{{ finance[0].id }}" method="post">
+
+        <hr>
+
+        <div class="form-group row">
+            <div class="col-4">
+                <h5>Information</h5>
+            </div>
+            <div class="col-8">
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label font-weight-bold">Number</label>
+                    <div class="col-sm-4">
+                        <p class="form-control-plaintext font-weight-bold">{{ finance[0].number }}</p>
+                    </div>
+                </div>
+
+
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label font-weight-bold">Name</label>
+                    <div class="col-sm-4">
+                        <p class="form-control-plaintext">{{ finance[0].username }}</p>
+                    </div>
+                    <label class="col-sm-2 col-form-label font-weight-bold">Director</label>
+                    <div class="col-sm-4">
+                        {% if session.user_id and session.role == "Admin" %}
+                            <input name="name_director" type="text" class="form-control" value="{{ finance[0].name_director }}">
+                        {% else %}
+                            <p class="form-control-plaintext">{{ finance[0].username }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label font-weight-bold">Status</label>
+                    <div class="col-sm-4">
+                        {% if session.user_id and session.role == "Admin" %}
+                            <input name="status" type="text" readonly class="form-control-plaintext" value="{{ finance[0].status }}">
+                        {% else %}
+                            <p class="form-control-plaintext">{{ finance[0].status }}</p>
+                        {% endif %}
+                    </div>
+                    <label class="col-sm-2 col-form-label font-weight-bold">Accountant</label>
+                    <div class="col-sm-4">
+                        {% if session.user_id and session.role == "Admin" %}
+                            <input name="name_accountant" type="text" class="form-control" value="{{ finance[0].name_accountant }}">
+                        {% else %}
+                            <p class="form-control-plaintext">{{ finance[0].name_accountant }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label font-weight-bold">Date</label>
+                    <div class="col-sm-4">
+                        <input name="date" type="date" class="form-control" value="{{ finance[0].date }}">
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <label class="col-sm-2 col-form-label font-weight-bold">Description</label>
+                    <div class="col-sm-10">
+                        <textarea name="text" class="form-control">{{ finance[0].text }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col-4">
+                <h5>Documents</h5>
+            </div>
+            <div class="col-8 text-right">
+                <button class="btn btn-success center-block" type="button" onclick="addTransaction()">Add Document</button>
+                <!--<a class="btn btn-success center-block" href="/finance/{{ finance[0].id }}/create_new_transaction" role="button">Add Document</a>-->
+            </div>
+        </div>
+
+        <table class="table table-hover" id="content">
+            <thead>
+                <tr>
+                    <th>Nr</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Partner</th>
+                    <th>Expense</th>
+                    <th>Amount, EUR</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ transaction.date }}</td>
+                        <td>{{ transaction.status }}</td>
+                        <td>{{ transaction.partner }}</td>
+                        <td>{{ transaction.expense }}</td>
+                        <td>{{ transaction.amount }}</td>
+                        <td>
+                            <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">Edit</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <hr>
+
+        <div class="text-center">
+            <button class="btn btn-info center-block" type="submit">Save</button>
+            <a class="btn btn-success btn-sm" href="/finance">Back</a>
+        </div>
+    </form>
+
+    <script type='text/javascript'>
+        function addTransaction() {
+            $.get('/finance/{{ finance[0].id }}/create_transaction', function(data) {
+                if(data == true) {
+                    $('#content').load(document.URL + ' #content');
+                }
+                else {
+                    alert('Failed to Create New Document. Please contact the Admin if this happens again.')
+                }
+            });
+        };
+
+        $('tbody').find('tr').click( function() {
+            window.location = $(this).find('a').attr('href');
+        }).hover( function() {
+            $(this).toggleClass('hover');
+        });
+    </script>
+{% endblock %}

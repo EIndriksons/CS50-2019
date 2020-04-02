@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Finance
+{% endblock %}
+
+{% block main %}
+    <form action="/finance/{{ transaction[0].finance_id }}/{{ transaction[0].id }}" method="post">
+
+        <div class="form-group">
+            <label class="col-form-label font-weight-bold">Status</label>
+            <p class="form-control-plaintext">{{ transaction[0].status }}</p>
+        </div>
+
+        <div class="form-group">
+            <label class="col-form-label font-weight-bold">Date</label>
+            <input name="date" type="date" class="form-control" value="{{ transaction[0].date }}">
+        </div>
+
+        <div class="form-group">
+            <label class="col-form-label font-weight-bold">Partner</label>
+            <input name="partner" type="text" class="form-control" value="{{ transaction[0].partner }}">
+        </div>
+
+        <div class="form-group">
+            <label class="col-form-label font-weight-bold">Expense</label>
+            <input name="expense" type="text" class="form-control" value="{{ transaction[0].expense }}">
+        </div>
+
+        <div class="form-group">
+            <label class="col-form-label font-weight-bold">Expense</label>
+            <input name="amount" type="number" step="0.01" min="0" class="form-control" value="{{ transaction[0].amount }}">
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a class="btn btn-success btn-sm" href="/finance/{{ transaction[0].finance_id }}">Back</a>
+    </form>
+{% endblock %}
