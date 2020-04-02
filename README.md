@@ -42,3 +42,4 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * [Survey](/pset7/survey)
 - [Problem Set 8:](/pset8)
   * [Finance](/pset8/finance)
+- [Final Project [Unfinished]](/project)
