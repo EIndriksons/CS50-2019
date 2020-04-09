@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Admin Settings
+{% endblock %}
+
+{% block main %}
+    <h3 class="mb-4">Admin Settings</h3>
+    <hr>
+    <form action="/admin_settings" method="post">
+        <div class="form-group">
+            <label class="font-weight-bold">Director name</label>
+            <input name="name_director" type="text" class="form-control" placeholder="{{ info[0].name_director }}" value="{{ info[0].name_director }}">
+        </div>
+        <div class="form-group">
+            <label class="font-weight-bold">Accountant name</label>
+            <input name="name_accountant" type="text" class="form-control" placeholder="{{ info[0].name_accountant }}" value="{{ info[0].name_accountant }}">
+        </div>
+        <button class="btn btn-secondary" type="submit">Save</button>
+    </form>
+{% endblock %}

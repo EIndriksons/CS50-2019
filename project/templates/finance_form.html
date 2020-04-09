@@ -11,8 +11,6 @@
 
     <form action="/finance/{{ finance[0].id }}" method="post">
 
-        <hr>
-
         <div class="form-group row">
             <div class="col-4">
                 <h5>Information</h5>
@@ -21,7 +19,11 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Number</label>
                     <div class="col-sm-4">
-                        <p class="form-control-plaintext font-weight-bold">{{ finance[0].number }}</p>
+                        {% if session.user_id and session.role == "Admin" %}
+                            <input name="number" type="text" class="form-control" value="{{ finance[0].number }}">
+                        {% else %}
+                            <p class="form-control-plaintext font-weight-bold">{{ finance[0].number }}</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -44,11 +46,7 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Status</label>
                     <div class="col-sm-4">
-                        {% if session.user_id and session.role == "Admin" %}
-                            <input name="status" type="text" readonly class="form-control-plaintext" value="{{ finance[0].status }}">
-                        {% else %}
-                            <p class="form-control-plaintext">{{ finance[0].status }}</p>
-                        {% endif %}
+                        <p class="form-control-plaintext">{{ finance[0].status }}</p>
                     </div>
                     <label class="col-sm-2 col-form-label font-weight-bold">Accountant</label>
                     <div class="col-sm-4">

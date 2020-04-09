@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Admin Settings
+{% endblock %}
+
+{% block main %}
+    <h3 class="mb-4">User Settings</h3>
+    <hr>
+    <form action="/settings" method="post">
+
+        <div class="form-group">
+            <label class="font-weight-bold">Email</label>
+            <input name="email" type="text" class="form-control" placeholder="{{ info[0].email }}" value="{{ info[0].email }}">
+        </div>
+        <div class="form-group">
+            <label class="font-weight-bold">Personal Code</label>
+            <input name="personal_code" type="text" class="form-control" placeholder="{{ info[0].personal_code }}" value="{{ info[0].personal_code }}">
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label class="font-weight-bold">Name</label>
+            <input name="name" type="text" class="form-control" placeholder="{{ info[0].name }}" value="{{ info[0].name }}">
+        </div>
+        <div class="form-group">
+            <label class="font-weight-bold">Surname</label>
+            <input name="surname" type="text" class="form-control" placeholder="{{ info[0].surname }}" value="{{ info[0].surname }}">
+        </div>
+
+        <hr>
+
+        <h4 class="mb-4">Change Password</h4>
+
+        <div class="form-group">
+            <input name="password" type="password" class="form-control" placeholder="Current Password">
+        </div>
+        <div class="form-group">
+            <input name="password_new_1" type="password" class="form-control" placeholder="New Password">
+        </div>
+        <div class="form-group">
+            <input name="password_new_2" type="password" class="form-control" placeholder="Confirm New Password">
+        </div>
+
+        <button class="btn btn-secondary" type="submit">Save</button>
+    </form>
+{% endblock %}

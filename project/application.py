@@ -81,12 +81,13 @@ def finance_form(finance_id):
 
     if request.method == "POST":
 
-        # Checking for Admin user
+    # POST variables: number, name_director, name_accountant,
+
+        # checking if the user is Admin
         if session["role"] == 'Admin':
 
             # UPDATE for Finance Form information
-            finance = db.execute("UPDATE Finance SET status=:status, number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
-                    status=request.form.get("status"),
+            finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
                     number=request.form.get("number"),
                     date=request.form.get("date"),
                     text=request.form.get("text"),
@@ -94,12 +95,10 @@ def finance_form(finance_id):
                     name_accountant=request.form.get("name_accountant"),
                     finance_id=finance_id)
 
-        # If not Admin user
+        # if user is not Admin
         else:
 
-            finance = db.execute("UPDATE Finance SET status=:status, number=:number, date=:date, text=:text WHERE id=:finance_id",
-                    status=request.form.get("status"),
-                    number=request.form.get("number"),
+            finance = db.execute("UPDATE Finance SET date=:date, text=:text WHERE id=:finance_id",
                     date=request.form.get("date"),
                     text=request.form.get("text"),
                     finance_id=finance_id)
@@ -114,7 +113,7 @@ def finance_form(finance_id):
         transactions = db.execute("SELECT id, status, date, partner, expense, amount FROM Transactions WHERE finance_id=:finance_id",
                     finance_id=finance_id)
 
-        # Check if the User is the one logged in correct
+        # check if the User is logged in
         if session["user_id"] != finance[0]["user_id"]:
             return redirect("/")
 
@@ -133,8 +132,9 @@ def finance_transaction_new(finance_id):
                 finance_id=finance_id,
                 status="Draft")
 
-    # TODO FLASH MESSAGE
-    flash("Password Changed!")
+    if not transaction:
+        return jsonify(False)
+
     return jsonify(True)
 
 
@@ -170,29 +170,95 @@ def finance_transaction(finance_id, transaction_id):
 def dashboard():
     """ Admin Finance board"""
 
-    dashboards = db.execute("SELECT user_id, date, number, status, name_director, name_accountant, id FROM Finance ORDER BY date")
+    dashboards = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, f.name_director, f.name_accountant FROM Finance f
+                               LEFT JOIN Users u ON u.id = f.user_id
+                               ORDER BY date""")
 
     return render_template("dashboard.html", dashboards=dashboards)
 
 
-@app.route("/dashboard/<finance_id>", methods=["GET", "POST"])
-@login_required
-@login_admin_required
-def dashboard_form(finance_id):
-    """ Individual Finance template for Admin board """
+# @app.route("/dashboard/<finance_id>", methods=["GET", "POST"])
+# @login_required
+# @login_admin_required
+# def dashboard_form(finance_id):
+#     """ Individual Finance template for Admin board """
 
-    # Query for finance form information
-    dashboard = db.execute("SELECT id, user_id, date, number, status, name_director, name_accountant FROM Finance WHERE id = :id",
-        id=finance_id)
+#     # Query for finance form information
+#     dashboard = db.execute("SELECT id, user_id, date, number, status, name_director, name_accountant FROM Finance WHERE id = :id",
+#         id=finance_id)
 
-    return render_template("dashboard_form.html", dashboard=dashboard)
+#     return render_template("dashboard_form.html", dashboard=dashboard)
 
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
     """ Settings """
-    return render_template("index.html")
+
+    # query for settings data
+    info = db.execute("SELECT email, name, surname, personal_code FROM Users WHERE id = :id",
+        id=session["user_id"])
+
+    if request.method == "POST":
+        # implmenet validation
+
+        # check if password change is required
+        if request.form.get("password") is not '' or request.form.get("password_new_1") is not '' or request.form.get("password_new_2") is not '':
+            # if password change is required - UPDATE everything
+
+            password_hash = db.execute("SELECT hash FROM Users WHERE id = :id", id = session["user_id"])
+
+            # check if current pasword is correct
+            if len(password_hash) != 1 or not check_password_hash(password_hash[0]["hash"], request.form.get("password")):
+                return apology("invalid current password", 400)
+
+            # check if the two new passwords are the same
+            if request.form.get("password_new_1") != request.form.get("password_new_2"):
+                return apology("confirmation password not matching", 400)
+
+            # create new hash
+            hash = generate_password_hash(request.form.get("password_new_1"))
+
+            # update database
+            update = db.execute("UPDATE Users SET email = :email, personal_code = :personal_code, name = :name, surname = :surname, hash = :hash WHERE id = :id",
+                email = request.form.get("email"),
+                personal_code = request.form.get("personal_code"),
+                name = request.form.get("name"),
+                surname = request.form.get("surname"),
+                hash = hash,
+                id = session["user_id"])
+
+            if not update:
+                return apology("update failed", 400)
+
+            flash("Password and Settings changed")
+            return redirect('/settings')
+
+        else:
+            # if password change is not required - UPDATE the rest of the fields if required
+            if request.form.get("email") == info[0]["email"] and request.form.get("personal_code") == info[0]["personal_code"] and request.form.get("name") == info[0]["name"] and request.form.get("surname") == info[0]["surname"]:
+                # no change - database UPDATE not required
+                return render_template("settings.html", info=info)
+
+            else:
+                # change - database UPDATE required
+                update = db.execute("UPDATE Users SET email = :email, personal_code = :personal_code, name = :name, surname = :surname WHERE id = :id",
+                    email = request.form.get("email"),
+                    personal_code = request.form.get("personal_code"),
+                    name = request.form.get("name"),
+                    surname = request.form.get("surname"),
+                    id = session["user_id"])
+
+                if not update:
+                    return apology("Database UPDATE failed", 400)
+
+                flash("Settings changed")
+                return redirect('/settings')
+
+
+    else:
+
+        return render_template("settings.html", info=info)
 
 @app.route("/admin_settings", methods=["GET", "POST"])
 @login_required
@@ -209,12 +275,12 @@ def admin_settings():
 
         # Query for info
         info = db.execute("SELECT name_director, name_accountant FROM Settings ORDER BY id desc LIMIT 1")
-        return render_template("admin_settings.html", info=info)
+        return render_template("settings_admin.html", info=info)
 
     else:
         # Query for info
         info = db.execute("SELECT name_director, name_accountant FROM Settings ORDER BY id desc LIMIT 1")
-        return render_template("admin_settings.html", info=info)
+        return render_template("settings_admin.html", info=info)
 
 
 @app.route("/register", methods=["GET", "POST"])
