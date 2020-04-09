@@ -36,7 +36,7 @@ db = SQL("sqlite:///project.db")
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return redirect('/finance')
 
 
 @app.route("/finance")
@@ -79,45 +79,47 @@ def finance_form_new():
 def finance_form(finance_id):
     """ Individual Finance form """
 
-    if request.method == "POST":
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
-    # POST variables: number, name_director, name_accountant,
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-        # checking if the user is Admin
-        if session["role"] == 'Admin':
+        if request.method == "POST":
 
-            # UPDATE for Finance Form information
-            finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
-                    number=request.form.get("number"),
-                    date=request.form.get("date"),
-                    text=request.form.get("text"),
-                    name_director=request.form.get("name_director"),
-                    name_accountant=request.form.get("name_accountant"),
-                    finance_id=finance_id)
+            # checking if the user is Admin for full form UPDATE
+            if session["role"] == 'Admin':
 
-        # if user is not Admin
+                # UPDATE for Finance Form information
+                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
+                        number=request.form.get("number"),
+                        date=request.form.get("date"),
+                        text=request.form.get("text"),
+                        name_director=request.form.get("name_director"),
+                        name_accountant=request.form.get("name_accountant"),
+                        finance_id=finance_id)
+
+            # if user is not Admin
+            else:
+
+                finance = db.execute("UPDATE Finance SET date=:date, text=:text WHERE id=:finance_id",
+                        date=request.form.get("date"),
+                        text=request.form.get("text"),
+                        finance_id=finance_id)
+
+            return redirect("/finance/" + str(finance_id))
+
         else:
 
-            finance = db.execute("UPDATE Finance SET date=:date, text=:text WHERE id=:finance_id",
-                    date=request.form.get("date"),
-                    text=request.form.get("text"),
-                    finance_id=finance_id)
+            # SELECT for Finance Form information and list of Transactions
+            finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id",
+                        id=finance_id)
+            transactions = db.execute("SELECT id, status, date, partner, expense, amount FROM Transactions WHERE finance_id=:finance_id",
+                        finance_id=finance_id)
 
-        return redirect("/finance/" + str(finance_id))
+            return render_template("finance_form.html", finance=finance, transactions=transactions)
 
     else:
-
-        # SELECT for Finance Form information and list of Transactions
-        finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id",
-                    id=finance_id)
-        transactions = db.execute("SELECT id, status, date, partner, expense, amount FROM Transactions WHERE finance_id=:finance_id",
-                    finance_id=finance_id)
-
-        # check if the User is logged in
-        if session["user_id"] != finance[0]["user_id"]:
-            return redirect("/")
-
-        return render_template("finance_form.html", finance=finance, transactions=transactions)
+        redirect('/')
 
 
 @app.route("/finance/<finance_id>/create_transaction", methods=["GET"])
@@ -135,6 +137,105 @@ def finance_transaction_new(finance_id):
     if not transaction:
         return jsonify(False)
 
+    return jsonify(True)
+
+
+@app.route("/finance/<finance_id>/submit", methods=["GET"])
+@login_required
+def finance_submit(finance_id):
+    """ Submit Form for approval """
+
+    # check if the form is already submitted
+    status = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id = finance_id)
+
+    if status[0]["status"] == 'New':
+
+        # form is already submitted - unsubmit
+        unsubmit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+            status = "Draft",
+            finance_id = finance_id)
+
+        if not unsubmit:
+            return jsonify(False)
+        return jsonify(True)
+
+    else:
+
+        # form is not submited - submit
+        submit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+                status = "New",
+                finance_id = finance_id)
+
+        if not submit:
+            return jsonify(False)
+        return jsonify(True)
+
+
+@app.route("/finance/<finance_id>/assign", methods=["GET"])
+@login_required
+@login_admin_required
+def finance_assign(finance_id):
+    """ Assign Admin for Approval """
+
+    # assign form to an admin for approval
+    assign = db.execute("UPDATE Finance SET review_id = :review_id, status = :status WHERE id=:finance_id",
+                review_id = session["user_id"],
+                status = "Review",
+                finance_id = finance_id)
+
+    if not assign:
+        return jsonify(False)
+    return jsonify(True)
+
+
+@app.route("/finance/<finance_id>/accept", methods=["GET"])
+@login_required
+@login_admin_required
+def finance_accept(finance_id):
+    """ Assign Admin for Approval """
+
+    # assign form to an admin for approval
+    assign = db.execute("UPDATE Finance SET review_id = :review_id, status = :status WHERE id=:finance_id",
+                review_id = session["user_id"],
+                status = "Accepted",
+                finance_id = finance_id)
+
+    if not assign:
+        return jsonify(False)
+    return jsonify(True)
+
+
+@app.route("/finance/<finance_id>/deny", methods=["GET"])
+@login_required
+@login_admin_required
+def finance_deny(finance_id):
+    """ Assign Admin for Approval """
+
+    # assign form to an admin for approval
+    assign = db.execute("UPDATE Finance SET review_id = :review_id, status = :status WHERE id=:finance_id",
+                review_id = session["user_id"],
+                status = "Denied",
+                finance_id = finance_id)
+
+    if not assign:
+        return jsonify(False)
+    return jsonify(True)
+
+
+@app.route("/finance/<finance_id>/paid", methods=["GET"])
+@login_required
+@login_admin_required
+def finance_paid(finance_id):
+    """ Assign Admin for Approval """
+
+    # assign form to an admin for approval
+    assign = db.execute("UPDATE Finance SET review_id = :review_id, status = :status WHERE id=:finance_id",
+                review_id = session["user_id"],
+                status = "Paid",
+                finance_id = finance_id)
+
+    if not assign:
+        return jsonify(False)
     return jsonify(True)
 
 
@@ -174,7 +275,12 @@ def dashboard():
                                LEFT JOIN Users u ON u.id = f.user_id
                                ORDER BY date""")
 
-    return render_template("dashboard.html", dashboards=dashboards)
+    reviews = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, f.name_director, f.name_accountant FROM Finance f
+                               LEFT JOIN Users u ON u.id = f.user_id
+                               WHERE f.status in ('Review', 'New')
+                               ORDER BY date""")
+
+    return render_template("dashboard.html", dashboards=dashboards, reviews=reviews)
 
 
 # @app.route("/dashboard/<finance_id>", methods=["GET", "POST"])

@@ -34,7 +34,7 @@
                         <td><span class="badge badge-pill badge-secondary">{{ finance.status }}</span></td>
                     {% elif finance.status == "New" %}
                         <td><span class="badge badge-pill badge-primary">{{ finance.status }}</span></td>
-                    {% elif finance.status == "In Progress" %}
+                    {% elif finance.status == "Review" %}
                         <td><span class="badge badge-pill badge-warning">{{ finance.status }}</span></td>
                     {% elif finance.status == "Accepted" or finance.status == "Paid" %}
                         <td><span class="badge badge-pill badge-success">{{ finance.status }}</span></td>
