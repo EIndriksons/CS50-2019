@@ -105,11 +105,26 @@
                         <td>{{ loop.index }}</td>
                         <td>{{ transaction.date }}</td>
                         <td>{{ transaction.status }}</td>
+                        {% if transaction.status == "Draft" %}
+                            <td><span class="badge badge-pill badge-secondary">{{ transaction.status }}</span></td>
+                        {% elif transaction.status == "New" %}
+                            <td><span class="badge badge-pill badge-primary">{{ transaction.status }}</span></td>
+                        {% elif transaction.status == "Review" %}
+                            <td><span class="badge badge-pill badge-warning">{{ transaction.status }}</span></td>
+                        {% elif transaction.status == "Accepted" %}
+                            <td><span class="badge badge-pill badge-success">{{ transaction.status }}</span></td>
+                        {% elif transaction.status == "Denied" %}
+                            <td><span class="badge badge-pill badge-danger">{{ transaction.status }}</span></td>
+                        {% endif %}
                         <td>{{ transaction.partner }}</td>
                         <td>{{ transaction.expense }}</td>
                         <td>{{ transaction.amount }}</td>
                         <td>
+                        {% if finance[0].status == "Draft" %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">Edit</a>
+                        {% else %}
+                            <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">View</a>
+                        {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
@@ -133,9 +148,9 @@
             <button class="btn btn-info center-block" type="submit">Save</button>
         </div>
         <div class="text-center">
-            <button class="btn btn-success center-block" type="button" onclick="myAccept({{ finance[0].id }})">Accept</button>
-            <button class="btn btn-danger center-block" type="button" onclick="myDeny({{ finance[0].id }})">Deny</button>
-            <button class="btn btn-success center-block" type="button" onclick="myPaid({{ finance[0].id }})">Paid</button>
+            <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Accepted')">Accept</button>
+            <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Denied')">Deny</button>
+            <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Paid')">Paid</button>
         </div>
         {% endif %}
     </form>
@@ -173,7 +188,7 @@
     {% if session.role == "Admin" %}
         <script>
             function myAssign(id) {
-                $.get('/finance/' + id + '/assign', function(data) {
+                $.get('/finance/' + id + '/status/assign', function(data) {
                    if(data == true) {
                        location.reload();
                    }
@@ -182,33 +197,14 @@
                    }
                 });
             }
-            function myAccept(id) {
-                $.get('/finance/' + id + '/accept', function(data) {
+
+            function myStatus(id, status) {
+                $.get('/finance/' + id + '/status/' + status, function(data) {
                    if(data == true) {
                        location.reload();
                    }
                    else {
-                       alert('Assignment failed!');
-                   }
-                });
-            }
-            function myDeny(id) {
-                $.get('/finance/' + id + '/deny', function(data) {
-                   if(data == true) {
-                       location.reload();
-                   }
-                   else {
-                       alert('Assignment failed!');
-                   }
-                });
-            }
-            function myPaid(id) {
-                $.get('/finance/' + id + '/paid', function(data) {
-                   if(data == true) {
-                       location.reload();
-                   }
-                   else {
-                       alert('Assignment failed!');
+                       alert("Status change failed!");
                    }
                 });
             }
