@@ -83,7 +83,7 @@
                 <h5>Documents</h5>
             </div>
             <div class="col-8 text-right">
-                <button class="btn btn-success center-block" type="button" onclick="addTransaction()">Add Document</button>
+                <button class="btn btn-success center-block" type="button" onclick="addTransaction({{ finance[0].id }})">Add Document</button>
             </div>
         </div>
 
@@ -104,14 +104,13 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>{{ transaction.date }}</td>
-                        <td>{{ transaction.status }}</td>
                         {% if transaction.status == "Draft" %}
                             <td><span class="badge badge-pill badge-secondary">{{ transaction.status }}</span></td>
                         {% elif transaction.status == "New" %}
                             <td><span class="badge badge-pill badge-primary">{{ transaction.status }}</span></td>
                         {% elif transaction.status == "Review" %}
                             <td><span class="badge badge-pill badge-warning">{{ transaction.status }}</span></td>
-                        {% elif transaction.status == "Accepted" %}
+                        {% elif transaction.status == "Accepted" or transaction.status == "Paid" %}
                             <td><span class="badge badge-pill badge-success">{{ transaction.status }}</span></td>
                         {% elif transaction.status == "Denied" %}
                             <td><span class="badge badge-pill badge-danger">{{ transaction.status }}</span></td>
@@ -122,6 +121,7 @@
                         <td>
                         {% if finance[0].status == "Draft" %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">Edit</a>
+                            <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance[0].id }}, {{ transaction.id }})">Delete</button>
                         {% else %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">View</a>
                         {% endif %}
@@ -153,61 +153,8 @@
             <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Paid')">Paid</button>
         </div>
         {% endif %}
+        <div class="text-center">
+            <button class="btn btn-danger center-block" type="button" onclick="myDelete({{ finance[0].id }})">Delete</button>
+        </div>
     </form>
-
-    <script type='text/javascript'>
-        function addTransaction() {
-            $.get('/finance/{{ finance[0].id }}/create_transaction', function(data) {
-                if(data == true) {
-                    $('#content').load(document.URL + ' #content');
-                }
-                else {
-                    alert('Failed to Create New Document. Please contact the Admin if this happens again.');
-                }
-            });
-        }
-
-        $('tbody').find('tr').click( function() {
-            window.location = $(this).find('a').attr('href');
-        }).hover( function() {
-            $(this).toggleClass('hover');
-        });
-
-        function mySubmit(id) {
-            $.get('/finance/' + id + '/submit', function(data) {
-               if(data == true) {
-                   location.reload();
-               }
-               else {
-                   alert('Form submission failed!');
-               }
-            });
-        }
-    </script>
-
-    {% if session.role == "Admin" %}
-        <script>
-            function myAssign(id) {
-                $.get('/finance/' + id + '/status/assign', function(data) {
-                   if(data == true) {
-                       location.reload();
-                   }
-                   else {
-                       alert('Assignment failed!');
-                   }
-                });
-            }
-
-            function myStatus(id, status) {
-                $.get('/finance/' + id + '/status/' + status, function(data) {
-                   if(data == true) {
-                       location.reload();
-                   }
-                   else {
-                       alert("Status change failed!");
-                   }
-                });
-            }
-        </script>
-    {% endif %}
 {% endblock %}

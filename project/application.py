@@ -7,6 +7,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import login_required, login_admin_required, apology
 
+
+
 """ Configuration """
 
 app = Flask(__name__)
@@ -32,6 +34,7 @@ Session(app)
 db = SQL("sqlite:///project.db")
 
 
+
 """ Website """
 
 @app.route("/")
@@ -42,7 +45,7 @@ def index():
 @app.route("/finance")
 @login_required
 def finance():
-    """ Private 'Finance' board """
+    """ Finance Form list """
 
     # SELECT for the list of finance forms in main 'Finance' page
     finances = db.execute("SELECT id, date, number, status, name_director, name_accountant FROM Finance WHERE user_id = :user_id ORDER BY date",
@@ -54,7 +57,7 @@ def finance():
 @app.route("/create_form")
 @login_required
 def finance_form_new():
-    """ Create Finance Form """
+    """ Create new Finance Form """
 
     # TODO implement anti-spamming control which checks DB for the last form entry
 
@@ -77,7 +80,7 @@ def finance_form_new():
 @app.route("/finance/<finance_id>", methods=["GET", "POST"])
 @login_required
 def finance_form(finance_id):
-    """ Individual Finance form """
+    """ Individual Finance Form """
 
     # check if the user can access this portion
     user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
@@ -125,7 +128,7 @@ def finance_form(finance_id):
 @app.route("/finance/<finance_id>/create_transaction", methods=["GET"])
 @login_required
 def finance_transaction_new(finance_id):
-    """ Create New Transaction """
+    """ Create New Transaction inside Finance Form """
 
     # TODO implement anti-spamming control which checks DB for the last form entry
 
@@ -156,13 +159,13 @@ def finance_submit(finance_id):
             finance_id = finance_id)
 
         if not unsubmit:
-            return jsonify(False)
-        return jsonify(True)
+            return jsonify(submit=False, text="Database UPDATE failed")
+        return jsonify(submit=True)
 
     elif status[0]["status"] == "Review" or status[0]["status"] == "Accepted" or status[0]["status"] == "Denied" or status[0]["status"] == "Paid":
 
         # form is in a later status stage, therefore ineligible
-        return jsonify(False)
+        return jsonify(submit=False, text="You cannot submit this form because it is already Submitted!")
 
     else:
 
@@ -172,7 +175,7 @@ def finance_submit(finance_id):
         transactions = db.execute("SELECT status FROM Transactions WHERE finance_id=:finance_id", finance_id = finance_id)
         for transaction in transactions:
             if transaction["status"] != "New":
-                return jsonify(False)
+                return jsonify(submit=False, text="You cannot submit the Form because there are unfinished transactions!")
 
         # submit form
         submit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
@@ -180,15 +183,59 @@ def finance_submit(finance_id):
                 finance_id = finance_id)
 
         if not submit:
-            return jsonify(False)
-        return jsonify(True)
+            return jsonify(submit=False, text="Database UPDATE failed")
+        return jsonify(submit=True)
+
+
+@app.route("/finance/<finance_id>/delete", methods=["GET"])
+@login_required
+def finance_delete(finance_id):
+    """ Delete Form """
+
+    form = db.execute("SELECT user_id, status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+
+    # cross-user validation
+    if session["role"] != "Admin":
+        if session["user_id"] != form[0]["user_id"]:
+            redirect('/')
+
+
+    if session["role"] != "Admin":
+
+        # if the form is in Draft and New state it can be deleted by anyone
+        if form[0]["status"] == "Draft" or form[0]["status"] == "New":
+
+            delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+            db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+
+            if not delete:
+                return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+            return jsonify(delete=True)
+
+        else:
+            return jsonify(delete=False, text="You don't have the required permission to delete this Form!")
+
+    elif session["role"] == "Admin":
+
+        # admins have permission to delete any form
+        delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+        db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+
+        if not delete:
+            return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+        return jsonify(delete=True)
 
 
 @app.route("/finance/<finance_id>/status/assign", methods=["GET"])
 @login_required
 @login_admin_required
 def finance_assign(finance_id):
-    """ Assign Admin for Approval """
+    """ Assign Form to Admin for Approval """
+
+    # check if there are any transactions before review
+    transactions = db.execute("SELECT id FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+    if not transactions:
+        return jsonify(assign=False, text="Cannot assign a form with no Transactions!")
 
     # assign form to an admin for approval
     assign = db.execute("UPDATE Finance SET review_id = :review_id, status = :status WHERE id=:finance_id",
@@ -202,73 +249,76 @@ def finance_assign(finance_id):
                 finance_id = finance_id)
 
     if not assign or not assign_transactions:
-        return jsonify(False)
-    return jsonify(True)
+        return jsonify(assign=False, text="Database UPDATE failed!")
+    return jsonify(assign=True)
 
 
 @app.route("/finance/<finance_id>/status/<status>", methods=["GET"])
 @login_required
 @login_admin_required
 def finance_status(finance_id, status):
-    """ Status change Workflow """
+    """ Form status change Workflow """
 
     if status == "Accepted" or status == "Denied":
 
         # make sure that form is under review, accepted or denied
         status_change = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
         if status_change[0]["status"] != "Review" and status_change[0]["status"] != "Accepted" and status_change[0]["status"] != "Denied":
-            return jsonify(False)
+            return jsonify(status=False, text="Form is not under Review, Accepted or Denied!")
 
         # make sure that all transactions are accepted or denied
         transactions = db.execute("SELECT status FROM Transactions WHERE finance_id=:finance_id", finance_id = finance_id)
         for transaction in transactions:
             if transaction["status"] != "Accepted" and transaction["status"] != "Denied":
-                return jsonify(False)
-
-        print("BLYAT")
+                return jsonify(status=False, text="All Transactions are not either Accepted or Denied!")
 
         accepted = 0
         for transaction in transactions:
             if transaction["status"] == "Accepted":
                 accepted += 1
 
-        print(accepted)
-
         # make sure if the form is accepted then at least one transaction is also accepted
         if status == "Accepted" and accepted < 1:
-            return jsonify(False)
+            return jsonify(status=False, text="Cannot Accept if there are no Accepted Transactions!")
 
         #        or if the form is denied then all transactions should be denied too
         if status == "Denied" and accepted > 0:
-            return jsonify(False)
-
-        print("WTFFFFFFF")
+            return jsonify(status=False, text="Cannot Deny if there are no Denied Transactions!")
 
         # UPDATE database
-        status_change = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+        update = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
                         status = status,
                         finance_id = finance_id)
 
-        if not status_change:
-            return jsonify(False)
-        return jsonify(True)
+        if not update:
+            return jsonify(status=False, text="Database UPDATE failed!")
+        return jsonify(status=True)
 
     elif status == "Paid":
 
-        # make sure that previous status is accepted or denied
-        status = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
-        if status[0]["status"] == "Accepted" or status[0]["status"] == "Denied":
+        # make sure that form is under review, accepted or denied
+        status_change = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+        if status_change[0]["status"] != "Review" and status_change[0]["status"] != "Accepted" and status_change[0]["status"] != "Denied":
+            return jsonify(status=False, text="Form is not under Review, Accepted or Denied!")
 
-            status_change = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
-                        status = status,
-                        finance_id = finance_id)
+        # UPDATE database
+        update = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+                    status = status,
+                    finance_id = finance_id)
 
-            if not status_change:
-                return jsonify(False)
-            return jsonify(True)
+        if not update:
+            return jsonify(status=False, text="Database UPDATE failed!")
 
-        else:
-            return jsonify(False)
+        # UPDATE accepted transactions
+
+        update = db.execute("UPDATE Transactions SET status = :status WHERE finance_id=:finance_id and status='Accepted'",
+            status=status,
+            finance_id=finance_id)
+
+        if not update:
+            return jsonify(status=False, text="Database UPDATE failed!")
+
+        return jsonify(status=True)
 
     else:
         return redirect("/")
@@ -277,7 +327,7 @@ def finance_status(finance_id, status):
 @app.route("/finance/<finance_id>/<transaction_id>", methods=["GET", "POST"])
 @login_required
 def transaction(finance_id, transaction_id):
-    """ Individual Finance transaction """
+    """ Individual Finance transactions """
 
     if request.method == "POST":
 
@@ -314,7 +364,7 @@ def transaction_submit(finance_id, transaction_id):
     transaction = db.execute("SELECT date, partner, expense, amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
     if (transaction[0]["date"] is None or transaction[0]["date"] == '' or transaction[0]["date"] == 'None' or transaction[0]["partner"] is None or transaction[0]["partner"] == '' or transaction[0]["partner"] == 'None' or
         transaction[0]["expense"] is None or transaction[0]["expense"] == '' or transaction[0]["expense"] == 'None' or transaction[0]["amount"] is None or transaction[0]["amount"] == '' or transaction[0]["amount"] == 'None'):
-        return jsonify(False)
+        return jsonify(submit=False, text="Transaction cannot be submitted as it is not finished!")
 
     # check if the transaction is already submitted
     status = db.execute("SELECT status FROM Transactions WHERE id=:transaction_id", transaction_id = transaction_id)
@@ -327,8 +377,8 @@ def transaction_submit(finance_id, transaction_id):
             transaction_id = transaction_id)
 
         if not unsubmit:
-            return jsonify(False)
-        return jsonify(True)
+            return jsonify(submit=False, text="Database UPDATE failed!")
+        return jsonify(submit=True)
 
     else:
 
@@ -338,15 +388,52 @@ def transaction_submit(finance_id, transaction_id):
                 transaction_id = transaction_id)
 
         if not submit:
-            return jsonify(False)
-        return jsonify(True)
+            return jsonify(submit=False, text="Database UPDATE failed!")
+        return jsonify(submit=True)
+
+
+@app.route("/finance/<finance_id>/<transaction_id>/delete", methods=["GET"])
+@login_required
+def transaction_delete(finance_id, transaction_id):
+    """ Delete Transaction """
+
+    transaction = db.execute("SELECT f.user_id, t.status FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE t.id=:transaction_id", transaction_id=transaction_id)
+
+    # cross-user validation
+    if session["role"] != "Admin":
+        if session["user_id"] != transaction[0]["user_id"]:
+            redirect('/')
+
+
+    if session["role"] != "Admin":
+
+        # if the transaction is in Draft and New state it can be deleted by anyone
+        if transaction[0]["status"] == "Draft" or transaction[0]["status"] == "New":
+
+            delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
+
+            if not delete:
+                return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+            return jsonify(delete=True)
+
+        else:
+            return jsonify(delete=False, text="You don't have the required permission to delete this Transaction!")
+
+    elif session["role"] == "Admin":
+
+        # admins have permission to delete any form
+        delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
+
+        if not delete:
+            return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+        return jsonify(delete=True)
 
 
 @app.route("/finance/<finance_id>/<transaction_id>/status/<status>", methods=["GET"])
 @login_required
 @login_admin_required
 def transaction_status(finance_id, transaction_id, status):
-    """ Status change Workflow """
+    """ Transaction status change Workflow """
 
     valid_statuses = ['Accepted', 'Denied']
 
@@ -356,7 +443,7 @@ def transaction_status(finance_id, transaction_id, status):
         # make sure form is in review stage
         form_check = db.execute("SELECT status FROM Finance WHERE id = :finance_id", finance_id=finance_id)
         if form_check[0]["status"] != "Review":
-            return jsonify(False)
+            return jsonify(status=False, text="Form must be in Review status!")
 
         # make sure previous status is under review or at least accepted/denied
         status_check = db.execute("SELECT status FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
@@ -368,21 +455,21 @@ def transaction_status(finance_id, transaction_id, status):
                             transaction_id = transaction_id)
 
             if not status_change:
-                return jsonify(False)
-            return jsonify(True)
+                return jsonify(status=False, text="Database UPDATE failed!")
+            return jsonify(status=True)
 
         else:
-            return jsonify(False)
+            return jsonify(status=False, text="Transaction status must be in Review, Accepted or Denied!")
 
     else:
-        return jsonify(False)
+        return jsonify(status=False, text="Invalid input!")
 
 
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 @login_admin_required
 def dashboard():
-    """ Admin Finance board"""
+    """ Admin Finance Form board"""
 
     dashboards = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, f.name_director, f.name_accountant FROM Finance f
                                LEFT JOIN Users u ON u.id = f.user_id
@@ -460,7 +547,6 @@ def settings():
 
                 flash("Settings changed")
                 return redirect('/settings')
-
 
     else:
 

@@ -31,6 +31,6 @@ body {
 }
 
 /* For hovering in tables */
-tr.hover {
+#content tbody tr {
     cursor: pointer;
 }

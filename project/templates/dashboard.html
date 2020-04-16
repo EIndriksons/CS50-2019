@@ -98,23 +98,4 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <script type='text/javascript'>
-        function addForm() {
-            $.get('/create_form', function(data) {
-                if(data == true) {
-                    $('#content').load(document.URL + ' #content');
-                }
-                else {
-                    alert('Failed to Create New Form. Please contact the Admin if this happens again.')
-                }
-            });
-        };
-
-        $('tbody').find('tr').click( function() {
-            window.location = $(this).find('a').attr('href');
-        }).hover( function() {
-            $(this).toggleClass('hover');
-        });
-    </script>
 {% endblock %}

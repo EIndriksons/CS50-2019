@@ -45,44 +45,25 @@
         <div>
             <button class="btn btn-primary" type="submit">Save</button>
             {% if transaction[0].status == "Draft" %}
-                <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ transaction[0].id }})">Submit</button>
+                <button class="btn btn-info center-block" type="button" onclick="myTransactionSubmit({{ transaction[0].finance_id }}, {{ transaction[0].id }})">Submit</button>
             {% elif transaction[0].status == "New" %}
-                <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ transaction[0].id }})">Unsubmit</button>
+                <button class="btn btn-info center-block" type="button" onclick="myTransactionSubmit({{ transaction[0].finance_id }}, {{ transaction[0].id }})">Unsubmit</button>
             {% endif %}
             <a class="btn btn-success btn-sm" href="/finance/{{ transaction[0].finance_id }}">Back</a>
         </div>
 
         {% if session.role == "Admin" %}
         <div>
-            <button class="btn btn-success center-block" type="button" onclick="myTransactionStatus({{ transaction[0].id }}, 'Accepted')">Accept</button>
-            <button class="btn btn-danger center-block" type="button" onclick="myTransactionStatus({{ transaction[0].id }}, 'Denied')">Deny</button>
+            <button class="btn btn-success center-block" type="button" onclick="myTransactionStatus({{ transaction[0].finance_id }}, {{ transaction[0].id }}, 'Accepted')">Accept</button>
+            <button class="btn btn-danger center-block" type="button" onclick="myTransactionStatus({{ transaction[0].finance_id }}, {{ transaction[0].id }}, 'Denied')">Deny</button>
         </div>
         {% endif %}
+        <div>
+            <button class="btn btn-danger center-block" type="button" onclick="myTransactionDelete({{ transaction[0].finance_id }}, {{ transaction[0].id }})">Delete</button>
+        </div>
     </form>
-    <script>
-        function mySubmit(id) {
-            $.get('/finance/{{ transaction[0].finance_id }}/' + id + '/submit', function(data) {
-               if(data == true) {
-                   location.reload();
-               }
-               else {
-                   alert('Form submission failed!');
-               }
-            });
-        }
-    </script>
     {% if session.role == "Admin" %}
-        <script>
-            function myTransactionStatus(id, status) {
-                $.get('/finance/{{ transaction[0].finance_id }}/' + id + '/status/' + status, function(data) {
-                   if(data == true) {
-                       location.reload();
-                   }
-                   else {
-                       alert("Status change failed!");
-                   }
-                });
-            }
+        
         </script>
     {% endif %}
 {% endblock %}
