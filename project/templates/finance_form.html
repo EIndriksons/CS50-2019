@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/finance/{{ finance[0].id }}" method="post">
+    <form action="/finance/{{ finance.id }}" method="post">
 
         <div class="form-group row">
             <div class="col-4">
@@ -16,9 +16,9 @@
                     <label class="col-sm-2 col-form-label font-weight-bold">Number</label>
                     <div class="col-sm-4">
                         {% if session.user_id and session.role == "Admin" %}
-                            <input name="number" type="text" class="form-control" value="{{ finance[0].number }}">
+                            <input name="number" type="text" class="form-control" value="{{ finance.number }}">
                         {% else %}
-                            <p class="form-control-plaintext font-weight-bold">{{ finance[0].number }}</p>
+                            <p class="form-control-plaintext font-weight-bold">{{ finance.number }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -26,14 +26,14 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Name</label>
                     <div class="col-sm-4">
-                        <p class="form-control-plaintext">{{ finance[0].username }}</p>
+                        <p class="form-control-plaintext">{{ finance.username }}</p>
                     </div>
                     <label class="col-sm-2 col-form-label font-weight-bold">Director</label>
                     <div class="col-sm-4">
                         {% if session.user_id and session.role == "Admin" %}
-                            <input name="name_director" type="text" class="form-control" value="{{ finance[0].name_director }}">
+                            <input name="name_director" type="text" class="form-control" value="{{ finance.name_director }}">
                         {% else %}
-                            <p class="form-control-plaintext">{{ finance[0].name_director }}</p>
+                            <p class="form-control-plaintext">{{ finance.name_director }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -41,24 +41,24 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Status</label>
                     <div class="col-sm-4">
-                        {% if finance[0].status == "Draft" %}
-                            <p class="form-control-plaintext badge badge-pill badge-secondary">{{ finance[0].status }}</p>
-                        {% elif finance[0].status == "New" %}
-                            <p class="form-control-plaintext badge badge-pill badge-primary">{{ finance[0].status }}</p>
-                        {% elif finance[0].status == "Review" %}
-                            <p class="form-control-plaintext badge badge-pill badge-warning">{{ finance[0].status }}</p>
-                        {% elif finance[0].status == "Accepted" or finance[0].status == "Paid" %}
-                            <p class="form-control-plaintext badge badge-pill badge-success">{{ finance[0].status }}</p>
-                        {% elif finance[0].status == "Denied" %}
-                            <p class="form-control-plaintext badge badge-pill badge-danger">{{ finance[0].status }}</p>
+                        {% if finance.status == "Draft" %}
+                            <p class="form-control-plaintext badge badge-pill badge-secondary">{{ finance.status }}</p>
+                        {% elif finance.status == "New" %}
+                            <p class="form-control-plaintext badge badge-pill badge-primary">{{ finance.status }}</p>
+                        {% elif finance.status == "Review" %}
+                            <p class="form-control-plaintext badge badge-pill badge-warning">{{ finance.status }}</p>
+                        {% elif finance.status == "Accepted" or finance.status == "Paid" %}
+                            <p class="form-control-plaintext badge badge-pill badge-success">{{ finance.status }}</p>
+                        {% elif finance.status == "Denied" %}
+                            <p class="form-control-plaintext badge badge-pill badge-danger">{{ finance.status }}</p>
                         {% endif %}
                     </div>
                     <label class="col-sm-2 col-form-label font-weight-bold">Accountant</label>
                     <div class="col-sm-4">
                         {% if session.user_id and session.role == "Admin" %}
-                            <input name="name_accountant" type="text" class="form-control" value="{{ finance[0].name_accountant }}">
+                            <input name="name_accountant" type="text" class="form-control" value="{{ finance.name_accountant }}">
                         {% else %}
-                            <p class="form-control-plaintext">{{ finance[0].name_accountant }}</p>
+                            <p class="form-control-plaintext">{{ finance.name_accountant }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -66,13 +66,13 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Date</label>
                     <div class="col-sm-4">
-                        <input name="date" type="date" class="form-control" value="{{ finance[0].date }}">
+                        <input name="date" type="date" class="form-control" value="{{ finance.date }}">
                     </div>
                 </div>
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Description</label>
                     <div class="col-sm-10">
-                        <textarea name="text" class="form-control">{{ finance[0].text }}</textarea>
+                        <textarea name="text" class="form-control">{{ finance.text }}</textarea>
                     </div>
                 </div>
             </div>
@@ -83,7 +83,7 @@
                 <h5>Documents</h5>
             </div>
             <div class="col-8 text-right">
-                <button class="btn btn-success center-block" type="button" onclick="addTransaction({{ finance[0].id }})">Add Document</button>
+                <button class="btn btn-success center-block" type="button" onclick="addTransaction({{ finance.id }})">Add Document</button>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
                     <th>Status</th>
                     <th>Partner</th>
                     <th>Expense</th>
-                    <th>Amount, EUR</th>
+                    <th>Amount</th>
                     <th></th>
                 </tr>
             </thead>
@@ -118,12 +118,12 @@
                         <td>{{ transaction.partner }}</td>
                         <td>{{ transaction.expense }}</td>
                         <td>{{ transaction.amount }}</td>
-                        <td>
-                        {% if finance[0].status == "Draft" %}
-                            <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">Edit</a>
-                            <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance[0].id }}, {{ transaction.id }})">Delete</button>
+                        <td class="text-right">
+                        {% if finance.status == "Draft" %}
+                            <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">Edit</a>
+                            <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance.id }}, {{ transaction.id }})">Delete</button>
                         {% else %}
-                            <a class="btn btn-success btn-sm" href="/finance/{{ finance[0].id }}/{{ transaction.id }}">View</a>
+                            <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">View</a>
                         {% endif %}
                         </td>
                     </tr>
@@ -133,28 +133,86 @@
 
         <hr>
 
-        <div class="text-center">
-            {% if finance[0].status == "Draft" %}
-                <button class="btn btn-info center-block" type="submit">Save</button>
-                <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance[0].id }})">Submit</button>
-            {% elif finance[0].status == "New" %}
-                <button class="btn btn-danger center-block" type="button" onclick="mySubmit({{ finance[0].id }})">Unsubmit</button>
+        <div class="form-group row">
+            <div class="col-4">
+                <div class="form-group row">
+                    <div class="col-auto">
+                        <p class="form-control-plaintext font-weight-bold">Personal Code:</p>
+                    </div>
+                    <div class="col-auto">
+                        <p class="form-control-plaintext">{% if user.personal_code == None or user.personal_code == '' %}xxxxxx-xxxxx{% else %}{{ user.personal_code }}{% endif %}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-8">
+                <div class="form-group row">
+                    <div class="col-auto">
+                        <p class="form-control-plaintext font-weight-bold">Bank Account:</p>
+                    </div>
+                    <div class="col">
+                        <select class="browser-default custom-select" name="bank_id">
+                            {% for bank in banks %}
+                                {% if bank.active == 'true' %}
+                                    <option value="{{ bank.id }}">{{ bank.bank_name }} - {{ bank.bank_iban }} (Default)</option>
+                                {% else %}
+                                    <option value="{{ bank.id }}">{{ bank.bank_name }} - {{ bank.bank_iban }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="form-group row">
+            {% if finance.status == "Draft" %}
+                <div class="col-auto mr-auto">
+                    <button class="btn btn-info center-block" type="submit">Save</button>
+                    {% if (user.personal_code == None or user.personal_code == '') and (not banks) %}
+                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
+                        <div class="mt-2">
+                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter personal code in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
+                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter bank account information in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
+                        </div>
+                    {% elif user.personal_code == None or user.personal_code == '' %}
+                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
+                        <div class="mt-2">
+                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter personal code in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
+                        </div>
+                    {% elif not banks %}
+                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
+                        <div class="mt-2">
+                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter bank account information in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
+                        </div>
+                    {% else %}
+                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})">Submit for Approval</button>
+                    {% endif %}
+                </div>
+            {% elif finance.status == "New" %}
+                <div class="col-auto mr-auto">
+                    <button class="btn btn-danger center-block" type="button" onclick="mySubmit({{ finance.id }})">Unsubmit</button>
+                </div>
             {% endif %}
-            <a class="btn btn-success btn-sm" href="/finance">Back</a>
+                <div class="col-auto">
+                    <a class="btn btn-success center-block" href="/finance">Back</a>
+                </div>
         </div>
         {% if session.role == "Admin" %}
-        <div class="text-center">
-            <button class="btn btn-info center-block" type="button" onclick="myAssign({{ finance[0].id }})">Assign To Me</button>
-            <button class="btn btn-info center-block" type="submit">Save</button>
-        </div>
-        <div class="text-center">
-            <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Accepted')">Accept</button>
-            <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Denied')">Deny</button>
-            <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance[0].id }}, 'Paid')">Paid</button>
+        <div class="form-group row">
+            <div class="col-auto">
+                <button class="btn btn-info center-block mr-2" type="button" onclick="myAssign({{ finance.id }})">Assign To Me</button>
+                <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')">Accept</button>
+                <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance.id }}, 'Denied')">Deny</button>
+                <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')">Paid</button>
+            </div>
         </div>
         {% endif %}
-        <div class="text-center">
-            <button class="btn btn-danger center-block" type="button" onclick="myDelete({{ finance[0].id }})">Delete</button>
+        <div class="form-group row">
+            <div class="col-auto">
+                <button class="btn btn-danger center-block" type="button" onclick="myDelete({{ finance.id }})">Delete</button>
+            </div>
         </div>
     </form>
 {% endblock %}

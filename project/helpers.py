@@ -1,5 +1,6 @@
 from flask import redirect, render_template, request, session
 from functools import wraps
+from schwifty import IBAN
 
 
 def login_required(f):
@@ -39,3 +40,11 @@ def apology(message, code):
             s = s.replace(old, new)
         return s
     return render_template("apology.html", top=code, bottom=escape(message)), code
+
+
+def validate_iban(iban):
+    """ Validate IBAN """
+    try:
+        return {'valid' : True, 'iban' : IBAN(iban).compact}
+    except ValueError as e:
+        return {'valid' : False, 'error' : str(e)}

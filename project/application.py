@@ -5,7 +5,7 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import login_required, login_admin_required, apology
+from helpers import login_required, login_admin_required, apology, validate_iban
 
 
 
@@ -89,24 +89,33 @@ def finance_form(finance_id):
 
         if request.method == "POST":
 
+            # get values for the bank accounts
+            bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]
+
             # checking if the user is Admin for full form UPDATE
             if session["role"] == 'Admin':
 
                 # UPDATE for Finance Form information
-                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
+                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
                         number=request.form.get("number"),
                         date=request.form.get("date"),
                         text=request.form.get("text"),
                         name_director=request.form.get("name_director"),
                         name_accountant=request.form.get("name_accountant"),
+                        paid_bank_name=bank["bank_name"],
+                        paid_bank_code=bank["bank_code"],
+                        paid_bank_iban=bank["bank_iban"],
                         finance_id=finance_id)
 
             # if user is not Admin
             else:
 
-                finance = db.execute("UPDATE Finance SET date=:date, text=:text WHERE id=:finance_id",
+                finance = db.execute("UPDATE Finance SET date=:date, text=:text, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
                         date=request.form.get("date"),
                         text=request.form.get("text"),
+                        paid_bank_name=bank["bank_name"],
+                        paid_bank_code=bank["bank_code"],
+                        paid_bank_iban=bank["bank_iban"],
                         finance_id=finance_id)
 
             return redirect("/finance/" + str(finance_id))
@@ -119,7 +128,11 @@ def finance_form(finance_id):
             transactions = db.execute("SELECT id, status, date, partner, expense, amount FROM Transactions WHERE finance_id=:finance_id",
                         finance_id=finance_id)
 
-            return render_template("finance_form.html", finance=finance, transactions=transactions)
+            # Check if the user has personal code and bank account data in settings
+            user = db.execute("SELECT personal_code FROM Users WHERE id=:user_id", user_id=session["user_id"])
+            banks = db.execute("SELECT id, bank_name, bank_iban, active FROM Bank WHERE user_id=:user_id ORDER BY active desc, createdate desc", user_id=session["user_id"])
+
+            return render_template("finance_form.html", finance=finance[0], transactions=transactions, user=user[0], banks=banks)
 
     else:
         redirect('/')
@@ -489,8 +502,8 @@ def settings():
     """ Settings """
 
     # query for settings data
-    info = db.execute("SELECT email, name, surname, personal_code FROM Users WHERE id = :id",
-        id=session["user_id"])
+    info = db.execute("SELECT email, name, surname, personal_code FROM Users WHERE id = :id", id=session["user_id"])
+    banks = db.execute("SELECT id, bank_name, bank_code, bank_iban, active FROM Bank WHERE user_id = :user_id", user_id=session["user_id"])
 
     if request.method == "POST":
         # implmenet validation
@@ -550,7 +563,71 @@ def settings():
 
     else:
 
-        return render_template("settings.html", info=info)
+        return render_template("settings.html", info=info, banks=banks)
+
+
+@app.route("/bank_add", methods=["POST"])
+@login_required
+def bank_add():
+    """ Add Bank Account """
+
+    # check if already exists
+    # todo in database
+    banks = db.execute("SELECT bank_iban FROM Bank WHERE user_id=:user_id", user_id=session["user_id"])
+    for bank in banks:
+        if bank["bank_iban"] == request.form.get("bank_iban"):
+            return jsonify(bank=False, text="This bank account has been already added!")
+
+    # validate IBAN
+    iban = validate_iban(request.form.get("bank_iban"))
+    if not iban["valid"]:
+        print(iban["error"])
+        return jsonify(bank=False, text=iban["error"])
+
+    default = request.form.get("active")
+
+    # change default if requested
+    if default == 'true':
+        db.execute("UPDATE Bank SET active='false' WHERE user_id=:user_id", user_id=session["user_id"])
+    # if default not requested but it is the only bank account - make it default
+    elif default == 'false' and len(banks) == 0:
+        default = 'true'
+
+
+    # insert database
+    bank = db.execute("INSERT INTO Bank (user_id, bank_name, bank_code, bank_iban, active) VALUES (:user_id, :bank_name, :bank_code, :bank_iban, :active)",
+        user_id=session["user_id"],
+        bank_name=request.form.get("bank_name"),
+        bank_code=request.form.get("bank_code"),
+        bank_iban=iban["iban"],
+        active=default)
+
+    if not bank:
+        return jsonify(bank=False, text="Database INSERT failed!")
+
+    return jsonify(bank=True)
+
+
+@app.route("/bank_delete", methods=["POST"])
+@login_required
+def bank_delete():
+    """ Delete Bank Account """
+
+    # check if the default bank account has to be changed
+    if db.execute("SELECT active FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]["active"] == "true":
+
+        # if so, change it to the last previous bank account (if such exists)
+        bank = db.execute("SELECT id, createdate, active FROM Bank WHERE user_id=:user_id ORDER BY createdate desc LIMIT 1", user_id=session["user_id"])
+        if bank:
+            db.execute("UPDATE Bank SET active='true' WHERE id=:bank_id", bank_id=bank[0]["id"])
+
+    # delete bank account
+    delete = db.execute("DELETE FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
+
+    if not delete:
+        return jsonify(delete=False, text="Database DELETE failed!")
+    return jsonify(delete=True)
+
 
 @app.route("/admin_settings", methods=["GET", "POST"])
 @login_required

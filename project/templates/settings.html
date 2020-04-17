@@ -11,14 +11,8 @@
 
         <div class="form-group">
             <label class="font-weight-bold">Email</label>
-            <input name="email" type="text" class="form-control" placeholder="{{ info[0].email }}" value="{{ info[0].email }}">
+            <input name="email" id="email" type="text" class="form-control" placeholder="{{ info[0].email }}" value="{{ info[0].email }}">
         </div>
-        <div class="form-group">
-            <label class="font-weight-bold">Personal Code</label>
-            <input name="personal_code" type="text" class="form-control" placeholder="{{ info[0].personal_code }}" value="{{ info[0].personal_code }}">
-        </div>
-
-        <hr>
 
         <div class="form-group">
             <label class="font-weight-bold">Name</label>
@@ -27,6 +21,50 @@
         <div class="form-group">
             <label class="font-weight-bold">Surname</label>
             <input name="surname" type="text" class="form-control" placeholder="{{ info[0].surname }}" value="{{ info[0].surname }}">
+        </div>
+
+        <div class="form-group">
+            <label class="font-weight-bold">Personal Code</label>
+            <input name="personal_code" id="personal_code" type="text" class="form-control" placeholder="{% if info[0].personal_code == None %}{% else %}{{ info[0].personal_code }}{% endif %}" value="{% if info[0].personal_code == None %}{% else %}{{ info[0].personal_code }}{% endif %}">
+        </div>
+
+        <hr>
+
+        <h4 class="mb-4">Bank Accounts</h4>
+
+        <div class="form-group">
+            <table class="table table-hover">
+                <thead class="font-weight-bold">
+                    <tr>
+                        <td>No.</td>
+                        <td>Bank name</td>
+                        <td>Bank code</td>
+                        <td>IBAN</td>
+                        <td>Default</td>
+                        <td></td>
+                    </tr>
+                </thead>
+                <tbody id="bankContent">
+                    <tr>
+                        <td></td>
+                        <td><input id="inputBank" class="form-control" type="text" placeholder="Swedbank"></td>
+                        <td><input id="inputBankCode" class="form-control" type="text" placeholder="HABALV22"></td>
+                        <td><input id="inputBankIBAN" class="form-control" type="text" placeholder="LV44HABA0551001234567"></td>
+                        <td><input id="inputBankActive" class="form-control" type="checkbox" checked></td>
+                        <td><button class="btn btn-sm btn-secondary" type="button" onclick="bankSubmit()">Add</button></td>
+                    </tr>
+                    {% for bank in banks %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ bank.bank_name }}</td>
+                            <td>{{ bank.bank_code }}</td>
+                            <td>{{ bank.bank_iban }}</td>
+                            <td>{% if bank.active == "true" %}Yes{% else %}No{% endif %}</td>
+                            <td><button class="btn btn-sm btn-danger" type="button" onclick="bankDelete({{ bank.id }})">Delete</button></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
         <hr>
@@ -45,4 +83,6 @@
 
         <button class="btn btn-secondary" type="submit">Save</button>
     </form>
+    <script src="https://cdn.rawgit.com/PascaleBeier/bootstrap-validate/v2.2.0/dist/bootstrap-validate.js"></script>
+    <script src="/static/script_settings.js"></script>
 {% endblock %}
