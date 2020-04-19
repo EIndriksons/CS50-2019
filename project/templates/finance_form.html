@@ -96,6 +96,7 @@
                     <th>Partner</th>
                     <th>Expense</th>
                     <th>Amount</th>
+                    <th>Accepted</th>
                     <th></th>
                 </tr>
             </thead>
@@ -117,7 +118,8 @@
                         {% endif %}
                         <td>{{ transaction.partner }}</td>
                         <td>{{ transaction.expense }}</td>
-                        <td>{{ transaction.amount }}</td>
+                        <td>{{ transaction.amount}}</td>
+                        <td>{{ transaction.paid_amount}}</td>
                         <td class="text-right">
                         {% if finance.status == "Draft" %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">Edit</a>
@@ -128,6 +130,15 @@
                         </td>
                     </tr>
                 {% endfor %}
+                {% if transactions %}
+                    <tr class="font-weight-bold">
+                        <td>{{info.count}}</td>
+                        <td colspan="4"></td>
+                        <td>{{info.total_amount}}</td>
+                        <td>{{info.total_paid_amount}}</td>
+                        <td></td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
 
@@ -150,6 +161,7 @@
                         <p class="form-control-plaintext font-weight-bold">Bank Account:</p>
                     </div>
                     <div class="col">
+                        {% if session.user_id == finance.user_id %}
                         <select class="browser-default custom-select" name="bank_id">
                             {% for bank in banks %}
                                 {% if bank.active == 'true' %}
@@ -158,6 +170,9 @@
                                     <option value="{{ bank.id }}">{{ bank.bank_name }} - {{ bank.bank_iban }}</option>
                                 {% endif %}
                             {% endfor %}
+                        {% else %}
+                            <p class="form-control-plaintext">{{ finance.paid_bank_name }} - {{ finance.paid_bank_iban }}</p>
+                        {% endif %}
                         </select>
                     </div>
                 </div>
@@ -192,7 +207,7 @@
                 </div>
             {% elif finance.status == "New" %}
                 <div class="col-auto mr-auto">
-                    <button class="btn btn-danger center-block" type="button" onclick="mySubmit({{ finance.id }})">Unsubmit</button>
+                    <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})">Unsubmit</button>
                 </div>
             {% endif %}
                 <div class="col-auto">

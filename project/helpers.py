@@ -42,6 +42,12 @@ def apology(message, code):
     return render_template("apology.html", top=code, bottom=escape(message)), code
 
 
+def eur(value):
+    """ Format value as EUR """
+    return f"€{value:,.2f}"
+
+
+
 def validate_iban(iban):
     """ Validate IBAN """
     try:

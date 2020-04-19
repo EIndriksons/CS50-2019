@@ -5,7 +5,7 @@ from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import login_required, login_admin_required, apology, validate_iban
+from helpers import login_required, login_admin_required, apology, eur, validate_iban
 
 
 
@@ -29,6 +29,9 @@ app.config["SESSION_FILE_DIR"] = mkdtemp()
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+# Custom filter
+app.jinja_env.filters["eur"] = eur
 
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///project.db")
@@ -123,16 +126,15 @@ def finance_form(finance_id):
         else:
 
             # SELECT for Finance Form information and list of Transactions
-            finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id",
-                        id=finance_id)
-            transactions = db.execute("SELECT id, status, date, partner, expense, amount FROM Transactions WHERE finance_id=:finance_id",
-                        finance_id=finance_id)
+            finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant, f.paid_bank_name, f.paid_bank_iban FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id", id=finance_id)
+            transactions = db.execute("SELECT id, status, date, partner, expense, amount, paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+            info = db.execute("SELECT count(id) as count, sum(amount) as total_amount, sum(paid_amount) as total_paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
 
             # Check if the user has personal code and bank account data in settings
             user = db.execute("SELECT personal_code FROM Users WHERE id=:user_id", user_id=session["user_id"])
             banks = db.execute("SELECT id, bank_name, bank_iban, active FROM Bank WHERE user_id=:user_id ORDER BY active desc, createdate desc", user_id=session["user_id"])
 
-            return render_template("finance_form.html", finance=finance[0], transactions=transactions, user=user[0], banks=banks)
+            return render_template("finance_form.html", finance=finance[0], transactions=transactions, user=user[0], banks=banks, info=info[0])
 
     else:
         redirect('/')
@@ -459,13 +461,19 @@ def transaction_status(finance_id, transaction_id, status):
             return jsonify(status=False, text="Form must be in Review status!")
 
         # make sure previous status is under review or at least accepted/denied
-        status_check = db.execute("SELECT status FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
+        status_check = db.execute("SELECT status, amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
         if status_check[0]["status"] == "Review" or status_check[0]["status"] == "Accepted" or status_check[0]["status"] == "Denied":
 
             # UPDATE database
             status_change = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
                             status = status,
                             transaction_id = transaction_id)
+
+            # if accepted UPDATE paid_amount
+            if status == "Accepted":
+                db.execute("UPDATE Transactions SET paid_amount=:paid_amount WHERE id=:transaction_id",
+                    paid_amount=status_check[0]["amount"],
+                    transaction_id = transaction_id)
 
             if not status_change:
                 return jsonify(status=False, text="Database UPDATE failed!")
