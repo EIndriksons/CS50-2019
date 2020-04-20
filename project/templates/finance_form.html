@@ -94,6 +94,8 @@
                     <th>Date</th>
                     <th>Status</th>
                     <th>Partner</th>
+                    <th>Doc. Type</th>
+                    <th>Doc. No</th>
                     <th>Expense</th>
                     <th>Amount</th>
                     <th>Accepted</th>
@@ -117,6 +119,8 @@
                             <td><span class="badge badge-pill badge-danger">{{ transaction.status }}</span></td>
                         {% endif %}
                         <td>{{ transaction.partner }}</td>
+                        <td>{{ transaction.document_type }}</td>
+                        <td>{{ transaction.document_no }}</td>
                         <td>{{ transaction.expense }}</td>
                         <td>{{ transaction.amount}}</td>
                         <td>{{ transaction.paid_amount}}</td>
@@ -133,7 +137,7 @@
                 {% if transactions %}
                     <tr class="font-weight-bold">
                         <td>{{info.count}}</td>
-                        <td colspan="4"></td>
+                        <td colspan="6"></td>
                         <td>{{info.total_amount}}</td>
                         <td>{{info.total_paid_amount}}</td>
                         <td></td>

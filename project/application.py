@@ -51,7 +51,7 @@ def finance():
     """ Finance Form list """
 
     # SELECT for the list of finance forms in main 'Finance' page
-    finances = db.execute("SELECT id, date, number, status, name_director, name_accountant FROM Finance WHERE user_id = :user_id ORDER BY date",
+    finances = db.execute("SELECT f.id, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE f.user_id = :user_id GROUP BY f.id, f.date, f.number, f.status ORDER BY f.date",
         user_id=session["user_id"])
 
     return render_template("finance.html", finances=finances)
@@ -114,12 +114,12 @@ def finance_form(finance_id):
             else:
 
                 finance = db.execute("UPDATE Finance SET date=:date, text=:text, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
-                        date=request.form.get("date"),
-                        text=request.form.get("text"),
-                        paid_bank_name=bank["bank_name"],
-                        paid_bank_code=bank["bank_code"],
-                        paid_bank_iban=bank["bank_iban"],
-                        finance_id=finance_id)
+                    date=request.form.get("date"),
+                    text=request.form.get("text"),
+                    paid_bank_name=bank["bank_name"],
+                    paid_bank_code=bank["bank_code"],
+                    paid_bank_iban=bank["bank_iban"],
+                    finance_id=finance_id)
 
             return redirect("/finance/" + str(finance_id))
 
@@ -127,7 +127,7 @@ def finance_form(finance_id):
 
             # SELECT for Finance Form information and list of Transactions
             finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant, f.paid_bank_name, f.paid_bank_iban FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id", id=finance_id)
-            transactions = db.execute("SELECT id, status, date, partner, expense, amount, paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+            transactions = db.execute("SELECT id, status, date, partner, document_type, document_no, expense, amount, paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
             info = db.execute("SELECT count(id) as count, sum(amount) as total_amount, sum(paid_amount) as total_paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
 
             # Check if the user has personal code and bank account data in settings
@@ -364,10 +364,10 @@ def transaction(finance_id, transaction_id):
     else:
 
         # SELECT for finance transaction information
-        transaction = db.execute("SELECT id, finance_id, status, date, partner, expense, amount FROM Transactions WHERE id = :id",
+        transaction = db.execute("SELECT id, finance_id, status, date, partner, document_type, document_no, expense, amount FROM Transactions WHERE id = :id",
             id=transaction_id)
 
-        return render_template("finance_transaction.html", transaction=transaction)
+        return render_template("finance_transaction.html", transaction=transaction[0])
 
 
 @app.route("/finance/<finance_id>/<transaction_id>/submit", methods=["GET"])
@@ -492,14 +492,18 @@ def transaction_status(finance_id, transaction_id, status):
 def dashboard():
     """ Admin Finance Form board"""
 
-    dashboards = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, f.name_director, f.name_accountant FROM Finance f
-                               LEFT JOIN Users u ON u.id = f.user_id
-                               ORDER BY date""")
+    dashboards = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f
+        LEFT JOIN Transactions t ON t.finance_id = f.id
+        LEFT JOIN Users u ON u.id = f.user_id
+        GROUP BY f.id, u.name, u.surname, f.date, f.number, f.status
+        ORDER BY f.date""")
 
-    reviews = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, f.name_director, f.name_accountant FROM Finance f
-                               LEFT JOIN Users u ON u.id = f.user_id
-                               WHERE f.status in ('Review', 'New', 'Accepted')
-                               ORDER BY date""")
+    reviews = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f
+        LEFT JOIN Transactions t ON t.finance_id = f.id
+        LEFT JOIN Users u ON u.id = f.user_id
+        WHERE f.status in ('Review', 'New', 'Accepted')
+        GROUP BY f.id, u.name, u.surname, f.date, f.number, f.status
+        ORDER BY f.date""")
 
     return render_template("dashboard.html", dashboards=dashboards, reviews=reviews)
 

@@ -19,8 +19,9 @@
                 <th>Date</th>
                 <th>Number</th>
                 <th>Status</th>
-                <th>Name Director</th>
-                <th>Name Accountant</th>
+                <th>Count</th>
+                <th>Amount</th>
+                <th>Paid Amount</th>
                 <th></th>
             </tr>
         </thead>
@@ -43,8 +44,9 @@
                     {% else %}
                         <td><span class="badge badge-pill badge-light">{{ finance.status }}</span></td>
                     {% endif %}
-                    <td>{{ finance.name_director }}</td>
-                    <td>{{ finance.name_accountant }}</td>
+                    <td>{{ finance.count }}</td>
+                    <td>{{ finance.total_amount }}</td>
+                    <td>{{ finance.total_paid_amount }}</td>
                     <td class="text-right">
                         <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">Edit</a>
                     </td>
