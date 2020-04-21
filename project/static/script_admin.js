@@ -33,3 +33,15 @@ function myTransactionStatus(financeId, transactionId, status) {
        }
     });
 }
+
+// accept or deny users
+function setUserStatus(userId, status) {
+    $.post('/registration', {user_id : userId, status : status}, function(data) {
+        if (data.status) {
+            $('#content').load(" #content > *");
+        }
+        else {
+            alert(data.text);
+        }
+    });
+}

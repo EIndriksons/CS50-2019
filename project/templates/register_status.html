@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}: Status{% endblock %}
+
+{% block main %}
+    {% if session.status != "Denied" %}
+    <div class="text-center">
+        <img src="https://media.giphy.com/media/l4q8rcLQkBWuyZ2XS/giphy.gif" alt="animated"/>
+        <h3 class="font-weight-bold mt-4">Your account is waiting approval!</h3>
+        <p>Meanwhile you can setup your settings by going <a href="/settings">HERE</a></p>
+    </div>
+    {% else %}
+    <div class="text-center">
+        <img src="https://media.giphy.com/media/9Y5BbDSkSTiY8/giphy.gif" alt="animated"/>
+        <h3 class="font-weight-bold mt-4">We are sorry to inform you...</h3>
+        <h4 class="font-weight-bold mt-4">But your account is <span class="text-danger">Denied!</span></h3>
+    </div>
+    {% endif %}
+{% endblock %}

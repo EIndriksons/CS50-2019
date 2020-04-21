@@ -28,6 +28,30 @@ def login_admin_required(f):
     return decorated_function
 
 
+def login_accepted_required(f):
+    """
+    Decorate routes to require accepted user profile.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session["status"] != 'Accepted':
+            return redirect("/register_status")
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def login_denied_prohibited(f):
+    """
+    Decorate routes to require accepted user profile.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session["status"] == 'Denied':
+            return redirect("/register_status")
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def apology(message, code):
     """Render message as an apology to user."""
     def escape(s):

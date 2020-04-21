@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}: Register{% endblock %}
+
+{% block main %}
+    <div class="container">
+        <div class="float-left mb-2"><h3>User registration status</h2></div>
+        </div>
+    </div>
+    <table class="table table-hover" id="content">
+        <thead>
+            <tr>
+                <th>Nr</th>
+                <th>Reg. date</th>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{loop.index}}</td>
+                    <td>{{user.createdate}}</td>
+                    <td>{{user.email}}</td>
+                    <td>{{user.name}}</td>
+                    {% if user.status == "New" %}
+                        <td><span class="badge badge-pill badge-primary">{{user.status}}</span></td>
+                    {% elif user.status == "Accepted" %}
+                        <td><span class="badge badge-pill badge-success">{{user.status}}</span></td>
+                    {% elif user.status == "Denied" %}
+                        <td><span class="badge badge-pill badge-danger">{{user.status}}</span></td>
+                    {% endif %}
+                    <td class="text-right">
+                        <button class="btn btn-success btn-sm" type="button" onclick="setUserStatus({{user.id}}, 'Accepted')">Accept</button>
+                        <button class="btn btn-danger btn-sm" type="button" onclick="setUserStatus({{user.id}}, 'Denied')">Deny</button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script src="/static/script_admin.js"></script>
+{% endblock %}

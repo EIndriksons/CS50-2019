@@ -4,8 +4,9 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
+from datetime import datetime
 
-from helpers import login_required, login_admin_required, apology, eur, validate_iban
+from helpers import login_required, login_admin_required, login_accepted_required, login_denied_prohibited, apology, eur, validate_iban
 
 
 
@@ -47,6 +48,7 @@ def index():
 
 @app.route("/finance")
 @login_required
+@login_accepted_required
 def finance():
     """ Finance Form list """
 
@@ -59,6 +61,7 @@ def finance():
 
 @app.route("/create_form")
 @login_required
+@login_accepted_required
 def finance_form_new():
     """ Create new Finance Form """
 
@@ -82,6 +85,7 @@ def finance_form_new():
 
 @app.route("/finance/<finance_id>", methods=["GET", "POST"])
 @login_required
+@login_accepted_required
 def finance_form(finance_id):
     """ Individual Finance Form """
 
@@ -142,6 +146,7 @@ def finance_form(finance_id):
 
 @app.route("/finance/<finance_id>/create_transaction", methods=["GET"])
 @login_required
+@login_accepted_required
 def finance_transaction_new(finance_id):
     """ Create New Transaction inside Finance Form """
 
@@ -160,6 +165,7 @@ def finance_transaction_new(finance_id):
 
 @app.route("/finance/<finance_id>/submit", methods=["GET"])
 @login_required
+@login_accepted_required
 def finance_submit(finance_id):
     """ Submit Form for approval """
 
@@ -204,6 +210,7 @@ def finance_submit(finance_id):
 
 @app.route("/finance/<finance_id>/delete", methods=["GET"])
 @login_required
+@login_accepted_required
 def finance_delete(finance_id):
     """ Delete Form """
 
@@ -243,6 +250,7 @@ def finance_delete(finance_id):
 
 @app.route("/finance/<finance_id>/status/assign", methods=["GET"])
 @login_required
+@login_accepted_required
 @login_admin_required
 def finance_assign(finance_id):
     """ Assign Form to Admin for Approval """
@@ -270,6 +278,7 @@ def finance_assign(finance_id):
 
 @app.route("/finance/<finance_id>/status/<status>", methods=["GET"])
 @login_required
+@login_accepted_required
 @login_admin_required
 def finance_status(finance_id, status):
     """ Form status change Workflow """
@@ -341,6 +350,7 @@ def finance_status(finance_id, status):
 
 @app.route("/finance/<finance_id>/<transaction_id>", methods=["GET", "POST"])
 @login_required
+@login_accepted_required
 def transaction(finance_id, transaction_id):
     """ Individual Finance transactions """
 
@@ -372,6 +382,7 @@ def transaction(finance_id, transaction_id):
 
 @app.route("/finance/<finance_id>/<transaction_id>/submit", methods=["GET"])
 @login_required
+@login_accepted_required
 def transaction_submit(finance_id, transaction_id):
     """ Submit Transaction for Review """
 
@@ -409,6 +420,7 @@ def transaction_submit(finance_id, transaction_id):
 
 @app.route("/finance/<finance_id>/<transaction_id>/delete", methods=["GET"])
 @login_required
+@login_accepted_required
 def transaction_delete(finance_id, transaction_id):
     """ Delete Transaction """
 
@@ -446,6 +458,7 @@ def transaction_delete(finance_id, transaction_id):
 
 @app.route("/finance/<finance_id>/<transaction_id>/status/<status>", methods=["GET"])
 @login_required
+@login_accepted_required
 @login_admin_required
 def transaction_status(finance_id, transaction_id, status):
     """ Transaction status change Workflow """
@@ -488,6 +501,7 @@ def transaction_status(finance_id, transaction_id, status):
 
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
+@login_accepted_required
 @login_admin_required
 def dashboard():
     """ Admin Finance Form board"""
@@ -510,6 +524,7 @@ def dashboard():
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
+@login_denied_prohibited
 def settings():
     """ Settings """
 
@@ -580,6 +595,7 @@ def settings():
 
 @app.route("/bank_add", methods=["POST"])
 @login_required
+@login_accepted_required
 def bank_add():
     """ Add Bank Account """
 
@@ -622,6 +638,7 @@ def bank_add():
 
 @app.route("/bank_delete", methods=["POST"])
 @login_required
+@login_accepted_required
 def bank_delete():
     """ Delete Bank Account """
 
@@ -670,28 +687,68 @@ def register():
 
     if request.method == "POST":
 
-        # Create hash from password
+        # create hash from password
         hash = generate_password_hash(request.form.get("password"))
 
-        # TODO:
-        # Check for unique ID in database
-        # Check that HASH cannot be NULL
-
-        # Insert user in database
+        # insert new user into database
         new_user = db.execute("INSERT INTO Users (email, name, surname, hash) VALUES(:email, :name, :surname, :hash)",
             email=request.form.get("email"),
             name=request.form.get("name"),
             surname=request.form.get("surname"),
             hash=hash)
 
+        if not new_user:
+            return apology("User with this email already exists!", 400)
+
         # Automatically log in the new user
         session["user_id"] = new_user
         session["role"] = "User"
+        session["status"] = "New"
 
-        return redirect("/")
+        return redirect("/register_status")
 
     else:
         return render_template("register.html")
+
+
+@app.route("/registration", methods=["GET", "POST"])
+@login_required
+@login_accepted_required
+@login_admin_required
+def registration():
+    """ Registration whitelist """
+
+    if request.method == "POST":
+
+        user_id = request.form.get("user_id")
+        status = request.form.get("status")
+
+        # make sure correct user status is submitted
+        if status == 'Accepted' or status == 'Denied':
+
+            # update user status
+            user = db.execute("UPDATE Users SET status=:status, status_changed=:status_changed, status_changed_by=:status_changed_by WHERE id=:user_id",
+                status=status,
+                status_changed=datetime.today().strftime('%Y-%m-%d'),
+                status_changed_by=session["user_id"],
+                user_id=user_id)
+
+            if not user:
+                return jsonify(status=False, text="Database UPDATE failed!")
+            return jsonify(status=True)
+
+    else:
+
+        users = db.execute("SELECT id, createdate, email, name || ' ' || surname as name, status FROM Users WHERE role != 'Admin'")
+        return render_template("registration.html", users=users)
+
+
+@app.route("/register_status", methods=["GET"])
+@login_required
+def reg_status():
+    """ Registration whitelist status """
+
+    return render_template("register_status.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -701,19 +758,23 @@ def login():
     if request.method == "POST":
 
         # Query database for email
-        rows = db.execute("SELECT id, email, hash, role FROM users WHERE email = :email",
+        login = db.execute("SELECT id, email, hash, role, status FROM Users WHERE email = :email",
             email=request.form.get("email"))
 
         # Ensure email exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
+        if len(login) != 1 or not check_password_hash(login[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 400)
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
-        session["role"] = rows[0]["role"]
+        session["user_id"] = login[0]["id"]
+        session["role"] = login[0]["role"]
+        session["status"] = login[0]["status"]
 
         # Redirect user to home page
-        return redirect("/")
+        if session["status"] == 'Accepted':
+            return redirect("/")
+
+        return redirect("/register_status")
 
     else:
         return render_template("login.html")

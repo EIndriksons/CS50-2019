@@ -23,7 +23,22 @@
         <nav class="navbar navbar-expand-md navbar-custom">
             <!-- LOGO TODO -->
             <div class="collapse navbar-collapse" id="navbar">
-                {% if session.user_id and session.role == "User" %}
+                {% if session.user_id and session.status == "New" %}
+                    <ul class="navbar-nav mr-auto mt-2">
+                        <li class="nav-item"><a class="nav-link" href="/register_status">Status</a></li>
+                    </ul>
+                    <ul class="navbar-nav ml-auto mt-2">
+                        <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
+                    </ul>
+                {% elif session.user_id and session.status == "Denied" %}
+                    <ul class="navbar-nav mr-auto mt-2">
+                        <li class="nav-item"><a class="nav-link" href="/register_status">Status</a></li>
+                    </ul>
+                    <ul class="navbar-nav ml-auto mt-2">
+                        <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
+                    </ul>
+                {% elif session.user_id and session.role == "User" and session.status == "Accepted" %}
                     <ul class="navbar-nav mr-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/finance">Finance</a></li>
                     </ul>
@@ -31,10 +46,11 @@
                         <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
                         <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
                     </ul>
-                {% elif session.user_id and session.role == "Admin" %}
+                {% elif session.user_id and session.role == "Admin" and session.status == "Accepted" %}
                     <ul class="navbar-nav mr-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/finance">Finance</a></li>
                         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/registration">Registration</a></li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/admin_settings">Admin Settings</a></li>
