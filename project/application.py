@@ -1,4 +1,5 @@
 import time
+import re
 from cs50 import SQL
 from flask import Flask, flash, jsonify, redirect, render_template, request, session
 from flask_session import Session
@@ -893,6 +894,27 @@ def register():
 
     if request.method == "POST":
 
+        # make sure email is valid
+        if not bool(re.match(r'^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$', request.form.get("email"))):
+            return apology("incorrect email", 400)
+
+        # make sure name/surname is valid
+        if bool(re.match(r'[\s]', request.form.get("name"))) or bool(re.match(r'[\s]', request.form.get("surname"))):
+            return apology("name or surname cannot contain whitespace", 400)
+
+        if bool(re.match(r'[^a-zA-Z]', request.form.get("name"))) or bool(re.match(r'[^a-zA-Z]', request.form.get("surname"))):
+            return apology("name or surname must contain only letters", 400)
+
+        # make sure password is valid
+        if not request.form.get('password') == request.form.get('confirmpassword'):
+            return apology("both passwords must be the same", 400)
+
+        if not len(request.form.get("password")) >= 8:
+            return apology("password must be at least 8 characters long", 400)
+
+        if not bool(re.match(r'^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)$', request.form.get("password"))):
+            return apology("password must contain at least one character and one number", 400)
+
         # create hash from password
         hash = generate_password_hash(request.form.get("password"))
 
@@ -904,7 +926,7 @@ def register():
             hash=hash)
 
         if not new_user:
-            return apology("User with this email already exists!", 400)
+            return apology("user with this email already exists!", 400)
 
         # automatically log in the new user
         session["user_id"] = new_user
@@ -915,6 +937,16 @@ def register():
 
     else:
         return render_template("register.html")
+
+
+@app.route("/register_email_validation", methods=["GET"])
+def register_email_validation():
+
+    email = request.args.get("email")
+    available = db.execute("SELECT email FROM Users WHERE email=:email", email=email)
+    if not available:
+        return jsonify(True)
+    return jsonify('This email already exists')
 
 
 @app.route("/registration", methods=["GET", "POST"])
