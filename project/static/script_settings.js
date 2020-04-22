@@ -2,10 +2,9 @@
 bootstrapValidate('#personal_code', 'regex:^.{11}$:Personal code should be 11 digits|integer:Personal code should only contain digits and not include characters like the hyphen ("-")');
 bootstrapValidate('#email', 'email:Please input a correct e-mail address');
 
-// todo CHANGE TO jquery POST
-
 // add a new bank account
 function bankSubmit() {
+    // left ajax for example purposes (jquery post example after this)
     $.ajax({
         data : {
             bank_name : $('#inputBank').val(),
@@ -32,9 +31,11 @@ function bankDelete(bankId) {
     if (delConfirmation) {
         $.post('/bank_delete', {bank_id : bankId}, function(data) {
         if (data.delete) {
+            // load only #content children (this prevents creation of another table or div)
             $('#bankContent').load(" #bankContent > *");
         }
         else {
+            // if failed - display error text
             alert(data.text);
         }
     });

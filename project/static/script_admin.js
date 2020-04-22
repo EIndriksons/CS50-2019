@@ -1,36 +1,42 @@
-// assign Form to the admin user
+// assign form to the admin user
 function myAssign(financeId) {
-    $.get('/finance/' + financeId + '/status/assign', function(data) {
-       if(data.assign) {
-           location.reload();
-       }
-       else {
-           alert(data.text);
-       }
+    $.post('/finance/admin_status_change', {financeId : financeId, change : 'assign'}, function(data) {
+        if(data.assign) {
+            // reload page on submission
+            location.reload();
+        }
+        else {
+            // if failed - display error text
+            alert(data.text);
+        }
     });
-};
+}
 
-// change Form status
+// change form status
 function myStatus(financeId, status) {
-    $.get('/finance/' + financeId + '/status/' + status, function(data) {
-       if(data.status) {
-           location.reload();
-       }
-       else {
-           alert(data.text);
-       }
+    $.post('/finance/admin_status_change', {financeId : financeId, change : 'status', status : status}, function(data) {
+        if(data.status) {
+            // reload page on submission
+            location.reload();
+        }
+        else {
+            // if failed - display error text
+            alert(data.text);
+        }
     });
-};
+}
 
-// change Transaction status
+// change transaction status
 function myTransactionStatus(financeId, transactionId, status) {
-    $.get('/finance/' + financeId + '/' + transactionId + '/status/' + status, function(data) {
-       if(data.status) {
-           location.reload();
-       }
-       else {
-           alert(data.text);
-       }
+    $.post('/transaction/admin_status_change', {financeId : financeId, transactionId : transactionId, status : status}, function(data) {
+        if(data.status) {
+            // reload page on submission
+            location.reload();
+        }
+        else {
+            // if failed - display error text
+            alert(data.text);
+        }
     });
 }
 
@@ -38,9 +44,11 @@ function myTransactionStatus(financeId, transactionId, status) {
 function setUserStatus(userId, status) {
     $.post('/registration', {user_id : userId, status : status}, function(data) {
         if (data.status) {
+            // load only #content children (this prevents creation of another table or div)
             $('#content').load(" #content > *");
         }
         else {
+            // if failed - display error text
             alert(data.text);
         }
     });
