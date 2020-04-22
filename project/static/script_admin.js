@@ -11,7 +11,7 @@ function myAssign(financeId) {
 };
 
 // change Form status
-function myStatus(financeId) {
+function myStatus(financeId, status) {
     $.get('/finance/' + financeId + '/status/' + status, function(data) {
        if(data.status) {
            location.reload();

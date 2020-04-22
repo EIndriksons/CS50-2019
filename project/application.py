@@ -53,7 +53,19 @@ def finance():
     """ Finance Form list """
 
     # SELECT for the list of finance forms in main 'Finance' page
-    finances = db.execute("SELECT f.id, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE f.user_id = :user_id GROUP BY f.id, f.date, f.number, f.status ORDER BY f.date",
+    finances = db.execute("""
+        SELECT f.id,
+            case when f.date is null then '-' else f.date end as date,
+            case when f.number is null then '-' else f.number end as number,
+            f.status,
+            count(t.id) as count,
+            case when sum(t.amount) is null then 0 else sum(t.amount) end as total_amount,
+            case when sum(t.paid_amount) is null or sum(t.paid_amount) = -0.01 then 0 else sum(t.paid_amount) end as total_paid_amount
+        FROM Finance f
+        LEFT JOIN Transactions t ON t.finance_id = f.id
+        WHERE f.user_id = :user_id
+        GROUP BY f.id, f.date, f.number, f.status
+        ORDER BY f.date""",
         user_id=session["user_id"])
 
     return render_template("finance.html", finances=finances)
@@ -96,26 +108,23 @@ def finance_form(finance_id):
 
         if request.method == "POST":
 
-            # get values for the bank accounts
-            bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]
-
             # checking if the user is Admin for full form UPDATE
             if session["role"] == 'Admin':
 
                 # UPDATE for Finance Form information
-                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
+                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
                         number=request.form.get("number"),
                         date=request.form.get("date"),
                         text=request.form.get("text"),
                         name_director=request.form.get("name_director"),
                         name_accountant=request.form.get("name_accountant"),
-                        paid_bank_name=bank["bank_name"],
-                        paid_bank_code=bank["bank_code"],
-                        paid_bank_iban=bank["bank_iban"],
                         finance_id=finance_id)
 
             # if user is not Admin
             else:
+
+                # get values for the bank accounts
+                bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]
 
                 finance = db.execute("UPDATE Finance SET date=:date, text=:text, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
                     date=request.form.get("date"),
@@ -130,15 +139,83 @@ def finance_form(finance_id):
         else:
 
             # SELECT for Finance Form information and list of Transactions
-            finance = db.execute("SELECT f.id, f.user_id, u.name || ' ' || u.surname as username, f.date, f.number, f.status, f.text, f.name_director, f.name_accountant, f.paid_bank_name, f.paid_bank_iban FROM Finance f LEFT JOIN Users u ON u.id = f.user_id WHERE f.id=:id", id=finance_id)
-            transactions = db.execute("SELECT id, status, date, partner, document_type, document_no, expense, amount, paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
-            info = db.execute("SELECT count(id) as count, sum(amount) as total_amount, sum(paid_amount) as total_paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+            finance = db.execute("""
+                SELECT
+                    f.id,
+                    f.user_id,
+                    u.name || ' ' || u.surname as username,
+                    case when u.personal_code is null or u.personal_code = '' then 'xxxxxx-xxxxx' else u.personal_code end as personal_code,
+                    f.date,
+                    case when f.number is null or f.number = '' then '-' else f.number end as number,
+                    f.status,
+                    case when f.text is null then '' else f.text end as text,
+                    f.name_director,
+                    f.name_accountant,
+                    f.paid_bank_name,
+                    f.paid_bank_iban
+                FROM Finance f
+                LEFT JOIN Users u ON u.id = f.user_id
+                WHERE f.id=:id""",
+                id=finance_id)
+            transactions = db.execute("""
+                SELECT
+                    id,
+                    status,
+                    case when date is null or date = '' then '-' else date end as date,
+                    case when partner is null or partner = '' then '-' else partner end as partner,
+                    case when document_type is null or document_type = '' then '-' else document_type end as document_type,
+                    case when document_no is null or document_no = '' then '-' else document_no end as document_no,
+                    case when expense is null or expense = '' then '-' else expense end as expense,
+                    amount,
+                    case when paid_amount is null or paid_amount = -0.01 then 0 else paid_amount end as paid_amount
+                FROM Transactions
+                WHERE finance_id=:finance_id""",
+                finance_id=finance_id)
+            info = db.execute("SELECT count(id) as count, sum(amount) as total_amount, case when sum(paid_amount) < 0 then 0 else sum(paid_amount) end as total_paid_amount FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
 
-            # Check if the user has personal code and bank account data in settings
-            user = db.execute("SELECT personal_code FROM Users WHERE id=:user_id", user_id=session["user_id"])
+            # check if the user has personal code and bank account data in settings
             banks = db.execute("SELECT id, bank_name, bank_iban, active FROM Bank WHERE user_id=:user_id ORDER BY active desc, createdate desc", user_id=session["user_id"])
 
-            return render_template("finance_form.html", finance=finance[0], transactions=transactions, user=user[0], banks=banks, info=info[0])
+            # check for errors
+            errors = []
+
+            if finance[0]['date'] == None or finance[0]['date'] == 'None' or finance[0]['date'] == '':
+                errors.append('Please input valid date')
+
+            if finance[0]['text'] == None or finance[0]['text'] == 'None' or finance[0]['text'] == '':
+                errors.append('Please input description text')
+
+            valid_trans_count = 0
+            for transaction in transactions:
+                if transaction["status"] == 'New':
+                    valid_trans_count += 1
+
+            if valid_trans_count == 0:
+                errors.append('Please add at least one valid transaction')
+
+            if finance[0]['personal_code'] == None or finance[0]['personal_code'] == 'None' or finance[0]['personal_code'] == '' or finance[0]['personal_code'] == 'xxxxxx-xxxxx':
+                errors.append('Please enter personal code in settings')
+
+            if len(banks) == 0:
+                errors.append('Please enter bank account information in settings')
+
+
+            # check for admin errors
+            admin_errors = []
+
+            if finance[0]["status"] == "Review":
+                if finance[0]['number'] == None or finance[0]['number'] == 'None' or finance[0]['number'] == '' or finance[0]['number'] == '-':
+                    admin_errors.append('Set Number')
+
+                valid_trans_count = 0
+                for transaction in transactions:
+                    if transaction["status"] == "Accepted" or transaction["status"] == "Denied":
+                        valid_trans_count += 1
+
+                if valid_trans_count == 0:
+                    admin_errors.append('Review transactions')
+
+            return render_template("finance_form.html", finance=finance[0], transactions=transactions, banks=banks, info=info[0], errors=errors, admin_errors=admin_errors)
 
     else:
         redirect('/')
@@ -356,28 +433,97 @@ def transaction(finance_id, transaction_id):
 
     if request.method == "POST":
 
-        print(request.form.get("date"), request.form.get("partner"), request.form.get("expense"), request.form.get("amount"))
+        if session["role"] == "Admin":
+            paid_amount = request.form.get("paid_amount")
 
-        # UPDATE for Transaction information
-        transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, amount=:amount WHERE id=:transaction_id",
-                    date=request.form.get("date"),
-                    partner=request.form.get("partner"),
-                    expense=request.form.get("expense"),
-                    amount=request.form.get("amount"),
-                    transaction_id=transaction_id)
+            amount = db.execute("SELECT amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)[0]["amount"]
+            if float(paid_amount) > float(amount):
+                return apology("accepted amount cannot be larger than original amount", 400)
 
-        if not transaction:
-            return apology("transaction update failed", 400)
+            # UPDATE for Transaction information
+            transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount, paid_amount=:paid_amount WHERE id=:transaction_id",
+                date=request.form.get("date"),
+                partner=request.form.get("partner"),
+                expense=request.form.get("expense"),
+                document_type=request.form.get("document_type"),
+                document_no=request.form.get("document_no"),
+                amount=request.form.get("amount"),
+                paid_amount=paid_amount,
+                transaction_id=transaction_id)
+
+            if not transaction:
+                return apology("transaction update failed", 400)
+
+        else:
+
+            # UPDATE for Transaction information
+            transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount WHERE id=:transaction_id",
+                date=request.form.get("date"),
+                partner=request.form.get("partner"),
+                expense=request.form.get("expense"),
+                document_type=request.form.get("document_type"),
+                document_no=request.form.get("document_no"),
+                amount=request.form.get("amount"),
+                transaction_id=transaction_id)
+
+            if not transaction:
+                return apology("transaction update failed", 400)
 
         return redirect("/finance/" + str(finance_id) + '/' + str(transaction_id))
 
     else:
 
         # SELECT for finance transaction information
-        transaction = db.execute("SELECT id, finance_id, status, date, partner, document_type, document_no, expense, amount FROM Transactions WHERE id = :id",
+        transaction = db.execute("""
+            SELECT
+                t.id,
+                t.finance_id,
+                t.status,
+                t.date,
+                case when t.partner is null then '' else t.partner end as partner,
+                case when t.document_type is null then '' else t.document_type end as document_type,
+                case when t.document_no is null then '' else t.document_no end as document_no,
+                case when t.expense is null then '' else t.expense end as expense,
+                t.amount,
+                t.paid_amount,
+                f.status as fin_status
+            FROM Transactions t
+            LEFT JOIN Finance f ON f.id = t.finance_id
+            WHERE t.id = :id""",
             id=transaction_id)
 
-        return render_template("finance_transaction.html", transaction=transaction[0])
+        document_types = db.execute("SELECT document_types FROM Settings ORDER BY id desc LIMIT 1")[0]
+        document_types = document_types["document_types"].split(',')
+
+        # check for errors
+        errors = []
+
+        if transaction[0]["date"] is None or transaction[0]["date"] == 'None' or transaction[0]["date"] == '':
+            errors.append('Please input valid date')
+
+        if transaction[0]["partner"] is None or transaction[0]["partner"] == 'None' or transaction[0]["partner"] == '':
+            errors.append('Please input partner company name')
+
+        if transaction[0]["document_type"] is None or transaction[0]["document_type"] == 'None' or transaction[0]["document_type"] == '':
+            errors.append('Please input document type')
+
+        if transaction[0]["document_no"] is None or transaction[0]["document_no"] == 'None' or transaction[0]["document_no"] == '':
+            errors.append('Please input document number')
+
+        if transaction[0]["expense"] is None or transaction[0]["expense"] == 'None' or transaction[0]["expense"] == '':
+            errors.append('Please input expense description')
+
+        if transaction[0]["amount"] == 0:
+            errors.append('Please input expense amount')
+
+        # check for admin errors
+        admin_errors = []
+
+        if transaction[0]["status"] == "Review":
+            if transaction[0]["paid_amount"] == -0.01:
+                admin_errors.append('Input accepted value')
+
+        return render_template("finance_transaction.html", transaction=transaction[0], document_types=document_types, errors=errors, admin_errors=admin_errors)
 
 
 @app.route("/finance/<finance_id>/<transaction_id>/submit", methods=["GET"])
@@ -499,20 +645,40 @@ def transaction_status(finance_id, transaction_id, status):
         return jsonify(status=False, text="Invalid input!")
 
 
-@app.route("/dashboard", methods=["GET", "POST"])
+@app.route("/dashboard", methods=["GET"])
 @login_required
 @login_accepted_required
 @login_admin_required
 def dashboard():
     """ Admin Finance Form board"""
 
-    dashboards = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f
+    dashboards = db.execute("""
+        SELECT
+            f.id,
+            u.name || ' ' || u.surname as user,
+            case when f.date is null then '-' else f.date end as date,
+            case when f.number is null then '-' else f.number end as number,
+            f.status,
+            count(t.id) as count,
+            case when sum(t.amount) is null then 0 else sum(t.amount) end as total_amount,
+            case when sum(t.paid_amount) is null or sum(t.paid_amount) = -0.01 then 0 else sum(t.paid_amount) end as total_paid_amount
+        FROM Finance f
         LEFT JOIN Transactions t ON t.finance_id = f.id
         LEFT JOIN Users u ON u.id = f.user_id
         GROUP BY f.id, u.name, u.surname, f.date, f.number, f.status
         ORDER BY f.date""")
 
-    reviews = db.execute("""SELECT f.id, u.name || ' ' || u.surname as user, f.date, f.number, f.status, count(t.id) as count, sum(t.amount) as total_amount, sum(t.paid_amount) as total_paid_amount FROM Finance f
+    reviews = db.execute("""
+        SELECT
+            f.id,
+            u.name || ' ' || u.surname as user,
+            case when f.date is null then '-' else f.date end as date,
+            case when f.number is null then '-' else f.number end as number,
+            f.status,
+            count(t.id) as count,
+            case when sum(t.amount) is null then 0 else sum(t.amount) end as total_amount,
+            case when sum(t.paid_amount) is null or sum(t.paid_amount) = -0.01 then 0 else sum(t.paid_amount) end as total_paid_amount
+        FROM Finance f
         LEFT JOIN Transactions t ON t.finance_id = f.id
         LEFT JOIN Users u ON u.id = f.user_id
         WHERE f.status in ('Review', 'New', 'Accepted')
@@ -595,7 +761,6 @@ def settings():
 
 @app.route("/bank_add", methods=["POST"])
 @login_required
-@login_accepted_required
 def bank_add():
     """ Add Bank Account """
 
@@ -638,7 +803,6 @@ def bank_add():
 
 @app.route("/bank_delete", methods=["POST"])
 @login_required
-@login_accepted_required
 def bank_delete():
     """ Delete Bank Account """
 
@@ -667,18 +831,17 @@ def admin_settings():
     if request.method == "POST":
 
         # SANITIZE INPUTS
-        db.execute("INSERT INTO Settings (name_director, name_accountant) VALUES (:name_director, :name_accountant)",
+        db.execute("INSERT INTO Settings (name_director, name_accountant, document_types) VALUES (:name_director, :name_accountant, :document_types)",
             name_director=request.form.get("name_director"),
-            name_accountant=request.form.get("name_accountant"))
+            name_accountant=request.form.get("name_accountant"),
+            document_types=request.form.get("document_types"))
 
-        # Query for info
-        info = db.execute("SELECT name_director, name_accountant FROM Settings ORDER BY id desc LIMIT 1")
-        return render_template("settings_admin.html", info=info)
+        return redirect('/admin_settings')
 
     else:
-        # Query for info
-        info = db.execute("SELECT name_director, name_accountant FROM Settings ORDER BY id desc LIMIT 1")
-        return render_template("settings_admin.html", info=info)
+
+        info = db.execute("SELECT name_director, name_accountant, document_types FROM Settings ORDER BY id desc LIMIT 1")
+        return render_template("settings_admin.html", info=info[0])
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -739,7 +902,7 @@ def registration():
 
     else:
 
-        users = db.execute("SELECT id, createdate, email, name || ' ' || surname as name, status FROM Users WHERE role != 'Admin'")
+        users = db.execute("SELECT id, createdate, email, name || ' ' || surname as name, status FROM Users WHERE role != 'Admin' ORDER BY createdate desc")
         return render_template("registration.html", users=users)
 
 

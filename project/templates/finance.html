@@ -29,8 +29,8 @@
             {% for finance in finances %}
                 <tr>
                     <td>{{ loop.index }}</td>
-                    <td>{{ finance.date }}</td>
-                    <td>{{ finance.number }}</td>
+                    <td>{% if finance.date == None %}YYYY-MM-DD{% else %}{{finance.date}}{% endif %}</td>
+                    <td>{% if finance.number == None %}-//-{% else %}{{finance.number}}{% endif %}</td>
                     {% if finance.status == "Draft" %}
                         <td><span class="badge badge-pill badge-secondary">{{ finance.status }}</span></td>
                     {% elif finance.status == "New" %}
@@ -45,10 +45,14 @@
                         <td><span class="badge badge-pill badge-light">{{ finance.status }}</span></td>
                     {% endif %}
                     <td>{{ finance.count }}</td>
-                    <td>{{ finance.total_amount }}</td>
-                    <td>{{ finance.total_paid_amount }}</td>
+                    <td>{{ finance.total_amount | eur }}</td>
+                    <td>{{ finance.total_paid_amount | eur }}</td>
                     <td class="text-right">
-                        <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">Edit</a>
+                        {% if finance.status == "Draft" %}
+                            <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">Edit</a>
+                        {% else %}
+                            <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">View</a>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}

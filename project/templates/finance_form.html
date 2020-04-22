@@ -15,10 +15,10 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Number</label>
                     <div class="col-sm-4">
-                        {% if session.user_id and session.role == "Admin" %}
+                        {% if session.user_id and session.role == "Admin" and finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" %}
                             <input name="number" type="text" class="form-control" value="{{ finance.number }}">
                         {% else %}
-                            <p class="form-control-plaintext font-weight-bold">{{ finance.number }}</p>
+                            <p class="form-control-plaintext font-weight-bold">{{finance.number}}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                     </div>
                     <label class="col-sm-2 col-form-label font-weight-bold">Director</label>
                     <div class="col-sm-4">
-                        {% if session.user_id and session.role == "Admin" %}
+                        {% if session.user_id and session.role == "Admin" and finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" %}
                             <input name="name_director" type="text" class="form-control" value="{{ finance.name_director }}">
                         {% else %}
                             <p class="form-control-plaintext">{{ finance.name_director }}</p>
@@ -55,7 +55,7 @@
                     </div>
                     <label class="col-sm-2 col-form-label font-weight-bold">Accountant</label>
                     <div class="col-sm-4">
-                        {% if session.user_id and session.role == "Admin" %}
+                        {% if session.user_id and session.role == "Admin" and finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" %}
                             <input name="name_accountant" type="text" class="form-control" value="{{ finance.name_accountant }}">
                         {% else %}
                             <p class="form-control-plaintext">{{ finance.name_accountant }}</p>
@@ -66,13 +66,21 @@
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Date</label>
                     <div class="col-sm-4">
-                        <input name="date" type="date" class="form-control" value="{{ finance.date }}">
+                        {% if finance.status == "Draft" or session.role == "Admin" and finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" %}
+                            <input name="date" type="date" class="form-control" value="{{ finance.date }}">
+                        {% else %}
+                            <input name="date" type="date" class="form-control" value="{{ finance.date }}" disabled>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="row mb-2">
                     <label class="col-sm-2 col-form-label font-weight-bold">Description</label>
                     <div class="col-sm-10">
-                        <textarea name="text" class="form-control">{{ finance.text }}</textarea>
+                        {% if finance.status == "Draft" or session.role == "Admin" and finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" %}
+                            <textarea name="text" class="form-control">{{finance.text}}</textarea>
+                        {% else %}
+                            <textarea name="text" class="form-control" disabled>{{finance.text}}</textarea>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -83,7 +91,11 @@
                 <h5>Documents</h5>
             </div>
             <div class="col-8 text-right">
-                <button class="btn btn-success center-block" type="button" onclick="addTransaction({{ finance.id }})">Add Document</button>
+                {% if finance.status == "Draft" %}
+                    <button class="btn btn-success center-block" type="button" onclick="addTransaction({{ finance.id }})">Add Document</button>
+                {% else %}
+                    <button class="btn btn-success center-block" type="button" disabled>Add Document</button>
+                {% endif %}
             </div>
         </div>
 
@@ -122,12 +134,14 @@
                         <td>{{ transaction.document_type }}</td>
                         <td>{{ transaction.document_no }}</td>
                         <td>{{ transaction.expense }}</td>
-                        <td>{{ transaction.amount}}</td>
-                        <td>{{ transaction.paid_amount}}</td>
+                        <td>{{ transaction.amount | eur}}</td>
+                        <td>{{ transaction.paid_amount | eur}}</td>
                         <td class="text-right">
                         {% if finance.status == "Draft" %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">Edit</a>
-                            <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance.id }}, {{ transaction.id }})">Delete</button>
+                            {% if transaction.status == "Draft" %}
+                                <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance.id }}, {{ transaction.id }})">Delete</button>
+                            {% endif %}
                         {% else %}
                             <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">View</a>
                         {% endif %}
@@ -135,11 +149,11 @@
                     </tr>
                 {% endfor %}
                 {% if transactions %}
-                    <tr class="font-weight-bold">
+                    <tr id="footer" class="font-weight-bold">
                         <td>{{info.count}}</td>
                         <td colspan="6"></td>
-                        <td>{{info.total_amount}}</td>
-                        <td>{{info.total_paid_amount}}</td>
+                        <td>{{info.total_amount | eur}}</td>
+                        <td>{{info.total_paid_amount | eur}}</td>
                         <td></td>
                     </tr>
                 {% endif %}
@@ -155,7 +169,7 @@
                         <p class="form-control-plaintext font-weight-bold">Personal Code:</p>
                     </div>
                     <div class="col-auto">
-                        <p class="form-control-plaintext">{% if user.personal_code == None or user.personal_code == '' %}xxxxxx-xxxxx{% else %}{{ user.personal_code }}{% endif %}</p>
+                        <p class="form-control-plaintext">{{ finance.personal_code }}</p>
                     </div>
                 </div>
             </div>
@@ -165,7 +179,7 @@
                         <p class="form-control-plaintext font-weight-bold">Bank Account:</p>
                     </div>
                     <div class="col">
-                        {% if session.user_id == finance.user_id %}
+                        {% if session.user_id == finance.user_id and finance.status == "Draft" %}
                         <select class="browser-default custom-select" name="bank_id">
                             {% for bank in banks %}
                                 {% if bank.active == 'true' %}
@@ -186,52 +200,79 @@
         <hr>
 
         <div class="form-group row">
-            {% if finance.status == "Draft" %}
+            {% if finance.status == "Draft" and session.user_id == finance.user_id  %}
                 <div class="col-auto mr-auto">
                     <button class="btn btn-info center-block" type="submit">Save</button>
-                    {% if (user.personal_code == None or user.personal_code == '') and (not banks) %}
-                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
-                        <div class="mt-2">
-                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter personal code in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
-                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter bank account information in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
-                        </div>
-                    {% elif user.personal_code == None or user.personal_code == '' %}
-                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
-                        <div class="mt-2">
-                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter personal code in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
-                        </div>
-                    {% elif not banks %}
-                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
-                        <div class="mt-2">
-                            <p class="font-weight-bold text-danger mb-0">Cannot Submit - Please enter bank account information in <a class="font-weight-bold text-danger" href="/settings">settings</a></p>
-                        </div>
-                    {% else %}
+                    {% if not errors %}
                         <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})">Submit for Approval</button>
+                    {% else %}
+                        <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})" disabled>Submit for Approval</button>
+                        <div class="mt-2">
+                            {% for error in errors %}
+                                <p class="font-weight-bold text-danger mb-0">{{error}}</p>
+                            {% endfor %}
+                        </div>
                     {% endif %}
                 </div>
-            {% elif finance.status == "New" %}
-                <div class="col-auto mr-auto">
-                    <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})">Unsubmit</button>
-                </div>
-            {% endif %}
                 <div class="col-auto">
                     <a class="btn btn-success center-block" href="/finance">Back</a>
                 </div>
+            {% elif finance.status == "New" and session.user_id == finance.user_id %}
+                <div class="col-auto mr-auto">
+                    <button class="btn btn-info center-block" type="button" onclick="mySubmit({{ finance.id }})">Unsubmit</button>
+                </div>
+                <div class="col-auto">
+                    <a class="btn btn-success center-block" href="/finance">Back</a>
+                </div>
+            {% else %}
+                <div class="col-auto mr-auto"></div>
+                <div class="col-auto">
+                    <a class="btn btn-success center-block" href="/finance">Back</a>
+                </div>
+            {% endif %}
         </div>
         {% if session.role == "Admin" %}
         <div class="form-group row">
             <div class="col-auto">
-                <button class="btn btn-info center-block mr-2" type="button" onclick="myAssign({{ finance.id }})">Assign To Me</button>
-                <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')">Accept</button>
-                <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance.id }}, 'Denied')">Deny</button>
-                <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')">Paid</button>
+                {% if finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" and finance.status != "New" %}
+                <button class="btn btn-info center-block" type="submit">Save</button>
+                {% endif %}
+                {% if finance.status == "New" %}
+                    <button class="btn btn-info center-block mr-2" type="button" onclick="myAssign({{ finance.id }})">Assign To Me</button>
+                {% endif %}
+                {% if not admin_errors %}
+                    {% if finance.status == "Review" %}
+                        <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')">Accept</button>
+                        <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance.id }}, 'Denied')">Deny</button>
+                        <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')" disabled>Paid</button>
+                    {% elif finance.status == "Accepted" %}
+                        <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')" disabled>Accept</button>
+                        <button class="btn btn-outline-danger" type="button" onclick="myStatus({{ finance.id }}, 'Denied')">Deny</button>
+                        <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')">Paid</button>
+                    {% elif finance.status == "Denied" %}
+                        <button class="btn btn-outline-success" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')">Accept</button>
+                        <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance.id }}, 'Denied')" disabled>Deny</button>
+                        <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')" disabled>Paid</button>
+                    {% endif %}
+                {% else %}
+                    <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Accepted')" disabled>Accept</button>
+                    <button class="btn btn-danger center-block" type="button" onclick="myStatus({{ finance.id }}, 'Denied')" disabled>Deny</button>
+                    <button class="btn btn-success center-block" type="button" onclick="myStatus({{ finance.id }}, 'Paid')" disabled>Paid</button>
+                    <div class="mt-2">
+                        {% for error in admin_errors %}
+                            <p class="font-weight-bold text-danger mb-0">{{error}}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
+        {% if finance.status == "Draft" or session.role == "Admin" %}
         <div class="form-group row">
             <div class="col-auto">
                 <button class="btn btn-danger center-block" type="button" onclick="myDelete({{ finance.id }})">Delete</button>
             </div>
         </div>
+        {% endif %}
     </form>
 {% endblock %}

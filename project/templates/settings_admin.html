@@ -10,11 +10,15 @@
     <form action="/admin_settings" method="post">
         <div class="form-group">
             <label class="font-weight-bold">Director name</label>
-            <input name="name_director" type="text" class="form-control" placeholder="{{ info[0].name_director }}" value="{{ info[0].name_director }}">
+            <input name="name_director" type="text" class="form-control" placeholder="{{info.name_director}}" value="{{info.name_director}}">
         </div>
         <div class="form-group">
             <label class="font-weight-bold">Accountant name</label>
-            <input name="name_accountant" type="text" class="form-control" placeholder="{{ info[0].name_accountant }}" value="{{ info[0].name_accountant }}">
+            <input name="name_accountant" type="text" class="form-control" placeholder="{{info.name_accountant}}" value="{{info.name_accountant}}">
+        </div>
+        <div class="form-group">
+            <label class="font-weight-bold">Document Types (separate with ',')</label>
+            <input name="document_types" type="text" class="form-control" placeholder="{{info.document_types}}" value="{{info.document_types}}">
         </div>
         <button class="btn btn-secondary" type="submit">Save</button>
     </form>
