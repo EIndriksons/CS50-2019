@@ -1,3 +1,4 @@
+import time
 from cs50 import SQL
 from flask import Flask, flash, jsonify, redirect, render_template, request, session
 from flask_session import Session
@@ -219,7 +220,7 @@ def finance_form(finance_id):
             return render_template("finance_form.html", finance=finance[0], transactions=transactions, banks=banks, info=info[0], errors=errors, admin_errors=admin_errors)
 
     else:
-        redirect('/')
+        return redirect('/')
 
 
 @app.route("/finance/create_transaction", methods=["POST"])
@@ -230,15 +231,23 @@ def finance_transaction_new():
 
     finance_id=request.form.get("financeId")
 
-    # add new transaction to the respective finance form
-    transaction = db.execute("INSERT INTO Transactions (finance_id, status) VALUES(:finance_id, :status)",
-        finance_id=finance_id,
-        status="Draft")
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
-    if not transaction:
-        return jsonify(insert=False, text='Failed to insert transaction into the database!')
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-    return jsonify(insert=True, link=transaction)
+        # add new transaction to the respective finance form
+        transaction = db.execute("INSERT INTO Transactions (finance_id, status) VALUES(:finance_id, :status)",
+            finance_id=finance_id,
+            status="Draft")
+
+        if not transaction:
+            return jsonify(insert=False, text='Failed to insert transaction into the database!')
+
+        return jsonify(insert=True, link=transaction)
+
+    else:
+        return redirect('/')
 
 
 @app.route("/finance/user_status_change", methods=["POST"])
@@ -247,65 +256,84 @@ def finance_transaction_new():
 def finance_status_change():
 
     finance_id = request.form.get("financeId")
-    change = request.form.get("change")
 
-    # on submit
-    if change == 'submit':
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
-        # check if the form is already submitted
-        status = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id = finance_id)
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-        if status[0]["status"] == 'New':
+        change = request.form.get("change")
 
-            # form is already submitted - unsubmit
-            unsubmit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
-                status = "Draft",
-                finance_id = finance_id)
+        # on submit
+        if change == 'submit':
 
-            if not unsubmit:
-                return jsonify(submit=False, text="Database UPDATE failed")
-            return jsonify(submit=True)
+            # check if the form is already submitted
+            status = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id = finance_id)
 
-        elif status[0]["status"] == "Review" or status[0]["status"] == "Accepted" or status[0]["status"] == "Denied" or status[0]["status"] == "Paid":
+            if status[0]["status"] == 'New':
 
-            # form is in a later status stage, therefore ineligible
-            return jsonify(submit=False, text="You cannot submit this form because it is already Submitted!")
-
-        else:
-
-            # form is not submited
-            # check if all transactions are submited
-
-            transactions = db.execute("SELECT status FROM Transactions WHERE finance_id=:finance_id", finance_id = finance_id)
-            for transaction in transactions:
-                if transaction["status"] != "New":
-                    return jsonify(submit=False, text="You cannot submit the Form because there are unfinished transactions!")
-
-            # submit form
-            submit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
-                    status = "New",
+                # form is already submitted - unsubmit
+                unsubmit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+                    status = "Draft",
                     finance_id = finance_id)
 
-            if not submit:
-                return jsonify(submit=False, text="Database UPDATE failed")
-            return jsonify(submit=True)
+                if not unsubmit:
+                    return jsonify(submit=False, text="Database UPDATE failed")
+                return jsonify(submit=True)
 
-    # on delete
-    if change == 'delete':
+            elif status[0]["status"] == "Review" or status[0]["status"] == "Accepted" or status[0]["status"] == "Denied" or status[0]["status"] == "Paid":
 
-        form = db.execute("SELECT user_id, status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+                # form is in a later status stage, therefore ineligible
+                return jsonify(submit=False, text="You cannot submit this form because it is already Submitted!")
 
-        # cross-user validation
-        if session["role"] != "Admin":
-            if session["user_id"] != form[0]["user_id"]:
-                redirect('/')
+            else:
+
+                # form is not submited
+                # check if all transactions are submited
+
+                transactions = db.execute("SELECT status FROM Transactions WHERE finance_id=:finance_id", finance_id = finance_id)
+                for transaction in transactions:
+                    if transaction["status"] != "New":
+                        return jsonify(submit=False, text="You cannot submit the Form because there are unfinished transactions!")
+
+                # submit form
+                submit = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
+                        status = "New",
+                        finance_id = finance_id)
+
+                if not submit:
+                    return jsonify(submit=False, text="Database UPDATE failed")
+                return jsonify(submit=True)
+
+        # on delete
+        if change == 'delete':
+
+            form = db.execute("SELECT user_id, status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+
+            # cross-user validation
+            if session["role"] != "Admin":
+                if session["user_id"] != form[0]["user_id"]:
+                    redirect('/')
 
 
-        if session["role"] != "Admin":
+            if session["role"] != "Admin":
 
-            # if the form is in Draft and New state it can be deleted by anyone
-            if form[0]["status"] == "Draft" or form[0]["status"] == "New":
+                # if the form is in Draft and New state it can be deleted by anyone
+                if form[0]["status"] == "Draft" or form[0]["status"] == "New":
 
+                    delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+                    db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
+
+                    if not delete:
+                        return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+                    return jsonify(delete=True)
+
+                else:
+                    return jsonify(delete=False, text="You don't have the required permission to delete this Form!")
+
+            elif session["role"] == "Admin":
+
+                # admins have permission to delete any form
                 delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
                 db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
 
@@ -313,18 +341,8 @@ def finance_status_change():
                     return jsonify(delete=False, text="Delete failed - Please contact Admin!")
                 return jsonify(delete=True)
 
-            else:
-                return jsonify(delete=False, text="You don't have the required permission to delete this Form!")
-
-        elif session["role"] == "Admin":
-
-            # admins have permission to delete any form
-            delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
-            db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
-
-            if not delete:
-                return jsonify(delete=False, text="Delete failed - Please contact Admin!")
-            return jsonify(delete=True)
+    else:
+        return redirect('/')
 
 
 @app.route("/finance/admin_status_change", methods=["POST"])
@@ -434,99 +452,107 @@ def finance_admin_status_change():
 def transaction(finance_id, transaction_id):
     """ Individual Finance transactions """
 
-    if request.method == "POST":
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
-        if session["role"] == "Admin":
-            paid_amount = request.form.get("paid_amount")
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-            amount = db.execute("SELECT amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)[0]["amount"]
-            if float(paid_amount) > float(amount):
-                return apology("accepted amount cannot be larger than original amount", 400)
+        if request.method == "POST":
 
-            # UPDATE for Transaction information
-            transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount, paid_amount=:paid_amount WHERE id=:transaction_id",
-                date=request.form.get("date"),
-                partner=request.form.get("partner"),
-                expense=request.form.get("expense"),
-                document_type=request.form.get("document_type"),
-                document_no=request.form.get("document_no"),
-                amount=request.form.get("amount"),
-                paid_amount=paid_amount,
-                transaction_id=transaction_id)
+            if session["role"] == "Admin":
+                paid_amount = request.form.get("paid_amount")
 
-            if not transaction:
-                return apology("transaction update failed", 400)
+                amount = db.execute("SELECT amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)[0]["amount"]
+                if float(paid_amount) > float(amount):
+                    return apology("accepted amount cannot be larger than original amount", 400)
+
+                # UPDATE for Transaction information
+                transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount, paid_amount=:paid_amount WHERE id=:transaction_id",
+                    date=request.form.get("date"),
+                    partner=request.form.get("partner"),
+                    expense=request.form.get("expense"),
+                    document_type=request.form.get("document_type"),
+                    document_no=request.form.get("document_no"),
+                    amount=request.form.get("amount"),
+                    paid_amount=paid_amount,
+                    transaction_id=transaction_id)
+
+                if not transaction:
+                    return apology("transaction update failed", 400)
+
+            else:
+
+                # UPDATE for Transaction information
+                transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount WHERE id=:transaction_id",
+                    date=request.form.get("date"),
+                    partner=request.form.get("partner"),
+                    expense=request.form.get("expense"),
+                    document_type=request.form.get("document_type"),
+                    document_no=request.form.get("document_no"),
+                    amount=request.form.get("amount"),
+                    transaction_id=transaction_id)
+
+                if not transaction:
+                    return apology("transaction update failed", 400)
+
+            return redirect("/finance/" + str(finance_id) + '/' + str(transaction_id))
 
         else:
 
-            # UPDATE for Transaction information
-            transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount WHERE id=:transaction_id",
-                date=request.form.get("date"),
-                partner=request.form.get("partner"),
-                expense=request.form.get("expense"),
-                document_type=request.form.get("document_type"),
-                document_no=request.form.get("document_no"),
-                amount=request.form.get("amount"),
-                transaction_id=transaction_id)
+            # SELECT for finance transaction information
+            transaction = db.execute("""
+                SELECT
+                    t.id,
+                    t.finance_id,
+                    t.status,
+                    t.date,
+                    case when t.partner is null then '' else t.partner end as partner,
+                    case when t.document_type is null then '' else t.document_type end as document_type,
+                    case when t.document_no is null then '' else t.document_no end as document_no,
+                    case when t.expense is null then '' else t.expense end as expense,
+                    t.amount,
+                    t.paid_amount,
+                    f.status as fin_status
+                FROM Transactions t
+                LEFT JOIN Finance f ON f.id = t.finance_id
+                WHERE t.id = :id""",
+                id=transaction_id)
 
-            if not transaction:
-                return apology("transaction update failed", 400)
+            document_types = db.execute("SELECT document_types FROM Settings ORDER BY id desc LIMIT 1")[0]
+            document_types = document_types["document_types"].split(',')
 
-        return redirect("/finance/" + str(finance_id) + '/' + str(transaction_id))
+            # check for errors
+            errors = []
+
+            if transaction[0]["date"] is None or transaction[0]["date"] == 'None' or transaction[0]["date"] == '':
+                errors.append('Please input valid date')
+
+            if transaction[0]["partner"] is None or transaction[0]["partner"] == 'None' or transaction[0]["partner"] == '':
+                errors.append('Please input partner company name')
+
+            if transaction[0]["document_type"] is None or transaction[0]["document_type"] == 'None' or transaction[0]["document_type"] == '':
+                errors.append('Please input document type')
+
+            if transaction[0]["document_no"] is None or transaction[0]["document_no"] == 'None' or transaction[0]["document_no"] == '':
+                errors.append('Please input document number')
+
+            if transaction[0]["expense"] is None or transaction[0]["expense"] == 'None' or transaction[0]["expense"] == '':
+                errors.append('Please input expense description')
+
+            if transaction[0]["amount"] == 0:
+                errors.append('Please input expense amount')
+
+            # check for admin errors
+            admin_errors = []
+
+            if transaction[0]["status"] == "Review":
+                if transaction[0]["paid_amount"] == -0.01:
+                    admin_errors.append('Input accepted value')
+
+            return render_template("finance_transaction.html", transaction=transaction[0], document_types=document_types, errors=errors, admin_errors=admin_errors)
 
     else:
-
-        # SELECT for finance transaction information
-        transaction = db.execute("""
-            SELECT
-                t.id,
-                t.finance_id,
-                t.status,
-                t.date,
-                case when t.partner is null then '' else t.partner end as partner,
-                case when t.document_type is null then '' else t.document_type end as document_type,
-                case when t.document_no is null then '' else t.document_no end as document_no,
-                case when t.expense is null then '' else t.expense end as expense,
-                t.amount,
-                t.paid_amount,
-                f.status as fin_status
-            FROM Transactions t
-            LEFT JOIN Finance f ON f.id = t.finance_id
-            WHERE t.id = :id""",
-            id=transaction_id)
-
-        document_types = db.execute("SELECT document_types FROM Settings ORDER BY id desc LIMIT 1")[0]
-        document_types = document_types["document_types"].split(',')
-
-        # check for errors
-        errors = []
-
-        if transaction[0]["date"] is None or transaction[0]["date"] == 'None' or transaction[0]["date"] == '':
-            errors.append('Please input valid date')
-
-        if transaction[0]["partner"] is None or transaction[0]["partner"] == 'None' or transaction[0]["partner"] == '':
-            errors.append('Please input partner company name')
-
-        if transaction[0]["document_type"] is None or transaction[0]["document_type"] == 'None' or transaction[0]["document_type"] == '':
-            errors.append('Please input document type')
-
-        if transaction[0]["document_no"] is None or transaction[0]["document_no"] == 'None' or transaction[0]["document_no"] == '':
-            errors.append('Please input document number')
-
-        if transaction[0]["expense"] is None or transaction[0]["expense"] == 'None' or transaction[0]["expense"] == '':
-            errors.append('Please input expense description')
-
-        if transaction[0]["amount"] == 0:
-            errors.append('Please input expense amount')
-
-        # check for admin errors
-        admin_errors = []
-
-        if transaction[0]["status"] == "Review":
-            if transaction[0]["paid_amount"] == -0.01:
-                admin_errors.append('Input accepted value')
-
-        return render_template("finance_transaction.html", transaction=transaction[0], document_types=document_types, errors=errors, admin_errors=admin_errors)
+        return redirect('/')
 
 
 @app.route("/transaction/user_status_change", methods=["POST"])
@@ -535,76 +561,85 @@ def transaction(finance_id, transaction_id):
 def transaction_status_change():
 
     finance_id = request.form.get("financeId")
-    transaction_id = request.form.get("transactionId")
-    change = request.form.get("change")
 
-    # on submit
-    if change == 'submit':
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
-        # check if eligible for submission
-        transaction = db.execute("SELECT date, partner, expense, amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
-        if (transaction[0]["date"] is None or transaction[0]["date"] == '' or transaction[0]["date"] == 'None' or transaction[0]["partner"] is None or transaction[0]["partner"] == '' or transaction[0]["partner"] == 'None' or
-            transaction[0]["expense"] is None or transaction[0]["expense"] == '' or transaction[0]["expense"] == 'None' or transaction[0]["amount"] is None or transaction[0]["amount"] == '' or transaction[0]["amount"] == 'None'):
-            return jsonify(submit=False, text="Transaction cannot be submitted as it is not finished!")
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-        # check if the transaction is already submitted
-        status = db.execute("SELECT status FROM Transactions WHERE id=:transaction_id", transaction_id = transaction_id)
+        transaction_id = request.form.get("transactionId")
+        change = request.form.get("change")
 
-        if status[0]["status"] == 'New':
+        # on submit
+        if change == 'submit':
 
-            # transaction is already submitted - unsubmit
-            unsubmit = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
-                status = "Draft",
-                transaction_id = transaction_id)
+            # check if eligible for submission
+            transaction = db.execute("SELECT date, partner, expense, amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
+            if (transaction[0]["date"] is None or transaction[0]["date"] == '' or transaction[0]["date"] == 'None' or transaction[0]["partner"] is None or transaction[0]["partner"] == '' or transaction[0]["partner"] == 'None' or
+                transaction[0]["expense"] is None or transaction[0]["expense"] == '' or transaction[0]["expense"] == 'None' or transaction[0]["amount"] is None or transaction[0]["amount"] == '' or transaction[0]["amount"] == 'None'):
+                return jsonify(submit=False, text="Transaction cannot be submitted as it is not finished!")
 
-            if not unsubmit:
-                return jsonify(submit=False, text="Database UPDATE failed!")
-            return jsonify(submit=True)
+            # check if the transaction is already submitted
+            status = db.execute("SELECT status FROM Transactions WHERE id=:transaction_id", transaction_id = transaction_id)
 
-        else:
+            if status[0]["status"] == 'New':
 
-            # transaction is not submited - submit
-            submit = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
-                    status = "New",
+                # transaction is already submitted - unsubmit
+                unsubmit = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
+                    status = "Draft",
                     transaction_id = transaction_id)
 
-            if not submit:
-                return jsonify(submit=False, text="Database UPDATE failed!")
-            return jsonify(submit=True)
+                if not unsubmit:
+                    return jsonify(submit=False, text="Database UPDATE failed!")
+                return jsonify(submit=True)
 
-    # on delete
-    if change == 'delete':
+            else:
 
-        transaction = db.execute("SELECT f.user_id, t.status FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE t.id=:transaction_id", transaction_id=transaction_id)
+                # transaction is not submited - submit
+                submit = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
+                        status = "New",
+                        transaction_id = transaction_id)
 
-        # cross-user validation
-        if session["role"] != "Admin":
-            if session["user_id"] != transaction[0]["user_id"]:
-                redirect('/')
+                if not submit:
+                    return jsonify(submit=False, text="Database UPDATE failed!")
+                return jsonify(submit=True)
+
+        # on delete
+        if change == 'delete':
+
+            transaction = db.execute("SELECT f.user_id, t.status FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE t.id=:transaction_id", transaction_id=transaction_id)
+
+            # cross-user validation
+            if session["role"] != "Admin":
+                if session["user_id"] != transaction[0]["user_id"]:
+                    redirect('/')
 
 
-        if session["role"] != "Admin":
+            if session["role"] != "Admin":
 
-            # if the transaction is in Draft and New state it can be deleted by anyone
-            if transaction[0]["status"] == "Draft" or transaction[0]["status"] == "New":
+                # if the transaction is in Draft and New state it can be deleted by anyone
+                if transaction[0]["status"] == "Draft" or transaction[0]["status"] == "New":
 
+                    delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
+
+                    if not delete:
+                        return jsonify(delete=False, text="Delete failed - Please contact Admin!")
+                    return jsonify(delete=True)
+
+                else:
+                    return jsonify(delete=False, text="You don't have the required permission to delete this Transaction!")
+
+            elif session["role"] == "Admin":
+
+                # admins have permission to delete any form
                 delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
 
                 if not delete:
                     return jsonify(delete=False, text="Delete failed - Please contact Admin!")
                 return jsonify(delete=True)
 
-            else:
-                return jsonify(delete=False, text="You don't have the required permission to delete this Transaction!")
-
-        elif session["role"] == "Admin":
-
-            # admins have permission to delete any form
-            delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
-
-            if not delete:
-                return jsonify(delete=False, text="Delete failed - Please contact Admin!")
-            return jsonify(delete=True)
+    else:
+        return redirect('/')
 
 
 @app.route("/transaction/admin_status_change", methods=["POST"])
@@ -871,7 +906,7 @@ def register():
         if not new_user:
             return apology("User with this email already exists!", 400)
 
-        # Automatically log in the new user
+        # automatically log in the new user
         session["user_id"] = new_user
         session["role"] = "User"
         session["status"] = "New"
@@ -928,20 +963,20 @@ def login():
 
     if request.method == "POST":
 
-        # Query database for email
+        # query database for email
         login = db.execute("SELECT id, email, hash, role, status FROM Users WHERE email = :email",
             email=request.form.get("email"))
 
-        # Ensure email exists and password is correct
+        # ensure email exists and password is correct
         if len(login) != 1 or not check_password_hash(login[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 400)
 
-        # Remember which user has logged in
+        # remember which user has logged in
         session["user_id"] = login[0]["id"]
         session["role"] = login[0]["role"]
         session["status"] = login[0]["status"]
 
-        # Redirect user to home page
+        # redirect user to home page
         if session["status"] == 'Accepted':
             return redirect("/")
 
@@ -955,10 +990,10 @@ def login():
 def logout():
     """ Logout """
 
-    # Forget any user_id
+    # forget any user_id
     session.clear()
 
-    # Redirect user to login form
+    # redirect user to login form
     return redirect("/login")
 
 
@@ -969,6 +1004,6 @@ def errorhandler(e):
     return apology(e.name, e.code)
 
 
-# Listen for errors
+# listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
