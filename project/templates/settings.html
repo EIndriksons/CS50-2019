@@ -7,7 +7,7 @@
 {% block main %}
     <h3 class="mb-4">User Settings</h3>
     <hr>
-    <form action="/settings" method="post">
+    <form id="settings-form" action="/settings" method="post">
 
         <div class="form-group">
             <label class="font-weight-bold">Email</label>
@@ -47,9 +47,9 @@
                 <tbody id="bankContent">
                     <tr>
                         <td></td>
-                        <td><input id="inputBank" class="form-control" type="text" placeholder="Swedbank"></td>
-                        <td><input id="inputBankCode" class="form-control" type="text" placeholder="HABALV22"></td>
-                        <td><input id="inputBankIBAN" class="form-control" type="text" placeholder="LV44HABA0551001234567"></td>
+                        <td><input id="inputBank" name="inputBank" class="form-control" type="text" placeholder="Swedbank"></td>
+                        <td><input id="inputBankCode" name="inputBankCode" class="form-control" type="text" placeholder="HABALV22"></td>
+                        <td><input id="inputBankIBAN" name="inputBankIBAN" class="form-control" type="text" placeholder="LV44HABA0551001234567"></td>
                         <td><input id="inputBankActive" class="form-control" type="checkbox" checked></td>
                         <td><button class="btn btn-sm btn-secondary" type="button" onclick="bankSubmit()">Add</button></td>
                     </tr>
@@ -75,14 +75,15 @@
             <input name="password" type="password" class="form-control" placeholder="Current Password">
         </div>
         <div class="form-group">
-            <input name="password_new_1" type="password" class="form-control" placeholder="New Password">
+            <input id="password_new_1" name="password_new_1" type="password" class="form-control" placeholder="New Password">
         </div>
         <div class="form-group">
             <input name="password_new_2" type="password" class="form-control" placeholder="Confirm New Password">
         </div>
 
-        <button class="btn btn-secondary" type="submit">Save</button>
+        <button id="submit-button" class="btn btn-secondary" type="submit">Save</button>
     </form>
-    <script src="https://cdn.rawgit.com/PascaleBeier/bootstrap-validate/v2.2.0/dist/bootstrap-validate.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.13.0/jquery.validate.min.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.13.0/additional-methods.min.js"></script>
     <script src="/static/script_settings.js"></script>
 {% endblock %}

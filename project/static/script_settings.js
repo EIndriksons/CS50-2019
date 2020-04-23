@@ -1,6 +1,71 @@
 // form validation
-bootstrapValidate('#personal_code', 'regex:^.{11}$:Personal code should be 11 digits|integer:Personal code should only contain digits and not include characters like the hyphen ("-")');
-bootstrapValidate('#email', 'email:Please input a correct e-mail address');
+$(function() {
+
+    $.validator.setDefaults({
+        errorClass : 'text-danger',
+        highlight : function(element) {
+            $(element)
+                .closest('.form-group')
+                .children('input')
+                .addClass('is-invalid');
+        },
+        unhighlight : function(element) {
+            $(element)
+                .closest('.form-group')
+                .children('input')
+                .removeClass('is-invalid');
+        }
+    });
+
+    $.validator.addMethod('strongPassword', function(value, element) {
+        return this.optional(element)
+            || value.length >= 8
+            && /\d/.test(value)
+            && /[a-z]/i.test(value);
+    }, 'Your password must be at least 8 characters long and contain at least one character and one number')
+
+    $('#settings-form').validate({
+        rules : {
+            email : {
+                required : true,
+                email : true
+            },
+            name : {
+                required : true,
+                nowhitespace : true,
+                lettersonly : true
+            },
+            surname : {
+                required : true,
+                nowhitespace : true,
+                lettersonly : true
+            },
+            personal_code : {
+                digits : true,
+                minlength : 11,
+                maxlength : 11
+            },
+            password_new_1 : {
+                required : true,
+                strongPassword : true
+            },
+            password_new_2 : {
+                required : true,
+                equalTo : '#password_new_1'
+            },
+            inputBank : {
+                lettersonly : true
+            },
+            inputBankCode : {
+                bic : true
+            },
+            inputBankIBAN : {
+                iban : true
+            }
+        }
+    });
+
+});
 
 // add a new bank account
 function bankSubmit() {

@@ -749,15 +749,32 @@ def settings():
         if request.form.get("password") is not '' or request.form.get("password_new_1") is not '' or request.form.get("password_new_2") is not '':
             # if password change is required - UPDATE everything
 
+            # make sure email is valid
+            if not bool(re.match(r'^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$', request.form.get("email"))):
+                return apology("incorrect email", 400)
+
+            # make sure name/surname is valid
+            if bool(re.match(r'[\s]', request.form.get("name"))) or bool(re.match(r'[\s]', request.form.get("surname"))):
+                return apology("name or surname cannot contain whitespace", 400)
+
+            if bool(re.match(r'[^a-zA-Z]', request.form.get("name"))) or bool(re.match(r'[^a-zA-Z]', request.form.get("surname"))):
+                return apology("name or surname must contain only letters", 400)
+
             password_hash = db.execute("SELECT hash FROM Users WHERE id = :id", id = session["user_id"])
 
             # check if current pasword is correct
             if len(password_hash) != 1 or not check_password_hash(password_hash[0]["hash"], request.form.get("password")):
                 return apology("invalid current password", 400)
 
-            # check if the two new passwords are the same
-            if request.form.get("password_new_1") != request.form.get("password_new_2"):
-                return apology("confirmation password not matching", 400)
+            # make sure new password is valid
+            if not request.form.get('password_new_1') == request.form.get('password_new_2'):
+                return apology("both passwords must be the same", 400)
+
+            if not len(request.form.get("password_new_1")) >= 8:
+                return apology("password must be at least 8 characters long", 400)
+
+            if not bool(re.match(r'^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)$', request.form.get("password_new_1"))):
+                return apology("password must contain at least one character and one number", 400)
 
             # create new hash
             hash = generate_password_hash(request.form.get("password_new_1"))
@@ -781,9 +798,21 @@ def settings():
             # if password change is not required - UPDATE the rest of the fields if required
             if request.form.get("email") == info[0]["email"] and request.form.get("personal_code") == info[0]["personal_code"] and request.form.get("name") == info[0]["name"] and request.form.get("surname") == info[0]["surname"]:
                 # no change - database UPDATE not required
-                return render_template("settings.html", info=info)
+                return redirect('/settings')
 
             else:
+
+                # make sure email is valid
+                if not bool(re.match(r'^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$', request.form.get("email"))):
+                    return apology("incorrect email", 400)
+
+                # make sure name/surname is valid
+                if bool(re.match(r'[\s]', request.form.get("name"))) or bool(re.match(r'[\s]', request.form.get("surname"))):
+                    return apology("name or surname cannot contain whitespace", 400)
+
+                if bool(re.match(r'[^a-zA-Z]', request.form.get("name"))) or bool(re.match(r'[^a-zA-Z]', request.form.get("surname"))):
+                    return apology("name or surname must contain only letters", 400)
+
                 # change - database UPDATE required
                 update = db.execute("UPDATE Users SET email = :email, personal_code = :personal_code, name = :name, surname = :surname WHERE id = :id",
                     email = request.form.get("email"),
@@ -808,12 +837,8 @@ def settings():
 def bank_add():
     """ Add Bank Account """
 
-    # check if already exists
-    # todo in database
+    # get list of already existing user banks
     banks = db.execute("SELECT bank_iban FROM Bank WHERE user_id=:user_id", user_id=session["user_id"])
-    for bank in banks:
-        if bank["bank_iban"] == request.form.get("bank_iban"):
-            return jsonify(bank=False, text="This bank account has been already added!")
 
     # validate IBAN
     iban = validate_iban(request.form.get("bank_iban"))
@@ -826,12 +851,12 @@ def bank_add():
     # change default if requested
     if default == 'true':
         db.execute("UPDATE Bank SET active='false' WHERE user_id=:user_id", user_id=session["user_id"])
+
     # if default not requested but it is the only bank account - make it default
     elif default == 'false' and len(banks) == 0:
         default = 'true'
 
-
-    # insert database
+    # insert bank account into the database
     bank = db.execute("INSERT INTO Bank (user_id, bank_name, bank_code, bank_iban, active) VALUES (:user_id, :bank_name, :bank_code, :bank_iban, :active)",
         user_id=session["user_id"],
         bank_name=request.form.get("bank_name"),
@@ -850,20 +875,25 @@ def bank_add():
 def bank_delete():
     """ Delete Bank Account """
 
-    # check if the default bank account has to be changed
-    if db.execute("SELECT active FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]["active"] == "true":
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
 
-        # if so, change it to the last previous bank account (if such exists)
-        bank = db.execute("SELECT id, createdate, active FROM Bank WHERE user_id=:user_id ORDER BY createdate desc LIMIT 1", user_id=session["user_id"])
-        if bank:
-            db.execute("UPDATE Bank SET active='true' WHERE id=:bank_id", bank_id=bank[0]["id"])
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
-    # delete bank account
-    delete = db.execute("DELETE FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
+        # check if the default bank account has to be changed
+        if db.execute("SELECT active FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]["active"] == "true":
 
-    if not delete:
-        return jsonify(delete=False, text="Database DELETE failed!")
-    return jsonify(delete=True)
+            # if so, change it to the last previous bank account (if such exists)
+            bank = db.execute("SELECT id, createdate, active FROM Bank WHERE user_id=:user_id ORDER BY createdate desc LIMIT 1", user_id=session["user_id"])
+            if bank:
+                db.execute("UPDATE Bank SET active='true' WHERE id=:bank_id", bank_id=bank[0]["id"])
+
+        # delete bank account
+        delete = db.execute("DELETE FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
+
+        if not delete:
+            return jsonify(delete=False, text="Database DELETE failed!")
+        return jsonify(delete=True)
 
 
 @app.route("/admin_settings", methods=["GET", "POST"])
