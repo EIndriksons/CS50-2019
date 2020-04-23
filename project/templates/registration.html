@@ -13,7 +13,7 @@
                 <th>Reg. date</th>
                 <th>Email</th>
                 <th>Name</th>
-                <th>Status</th>
+                <th class="table-center">Status</th>
                 <th></th>
             </tr>
         </thead>
@@ -25,15 +25,15 @@
                     <td>{{user.email}}</td>
                     <td>{{user.name}}</td>
                     {% if user.status == "New" %}
-                        <td><span class="badge badge-pill badge-primary">{{user.status}}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-primary">{{user.status}}</span></td>
                     {% elif user.status == "Accepted" %}
-                        <td><span class="badge badge-pill badge-success">{{user.status}}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-success">{{user.status}}</span></td>
                     {% elif user.status == "Denied" %}
-                        <td><span class="badge badge-pill badge-danger">{{user.status}}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-danger">{{user.status}}</span></td>
                     {% endif %}
                     <td class="text-right">
-                        <button class="btn btn-success btn-sm" type="button" onclick="setUserStatus({{user.id}}, 'Accepted')">Accept</button>
-                        <button class="btn btn-danger btn-sm" type="button" onclick="setUserStatus({{user.id}}, 'Denied')">Deny</button>
+                        <button class="btn btn-success btn-sm btn-size-med" type="button" onclick="setUserStatus({{user.id}}, 'Accepted')">Accept</button>
+                        <button class="btn btn-danger btn-sm btn-size-med" type="button" onclick="setUserStatus({{user.id}}, 'Denied')">Deny</button>
                     </td>
                 </tr>
             {% endfor %}

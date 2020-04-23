@@ -46,10 +46,13 @@ db = SQL("sqlite:///project.db")
 @app.route("/")
 def index():
 
-    if session["role"] == "Admin":
-        return redirect('/dashboard')
-    else:
-        return redirect('/finance')
+    try:
+        if session["role"] == "Admin":
+            return redirect('/dashboard')
+        else:
+            return redirect('/finance')
+    except:
+        return redirect('/login')
 
 
 @app.route("/finance", methods=["GET", "POST"])
@@ -894,6 +897,32 @@ def bank_delete():
         if not delete:
             return jsonify(delete=False, text="Database DELETE failed!")
         return jsonify(delete=True)
+
+
+@app.route("/bank_default", methods=["POST"])
+@login_required
+def bank_default():
+    """ Set Default Bank Account """
+
+    # check if the user can access this portion
+    user_id = db.execute("SELECT user_id FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
+
+    if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
+
+        # change default bank account
+        default = db.execute("UPDATE Bank SET active='true' WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
+
+        if not default:
+            return jsonify(default=False, text="Database UPDATE failed!")
+
+        # change other bank account status
+        default = db.execute("UPDATE Bank SET active='false' WHERE user_id=:user_id and id!=:bank_id",
+            user_id=session["user_id"],
+            bank_id=request.form.get("bank_id"))
+
+        if not default:
+            return jsonify(default=False, text="Second Database UPDATE failed!")
+        return jsonify(default=True)
 
 
 @app.route("/admin_settings", methods=["GET", "POST"])

@@ -106,3 +106,20 @@ function bankDelete(bankId) {
     });
     }
 }
+
+// change default bank account
+function changeDefault(bankId) {
+    let delConfirmation = confirm("Are you sure you want to change the default Bank Account?");
+    if (delConfirmation) {
+        $.post('/bank_default', {bank_id : bankId}, function(data) {
+        if (data.default) {
+            // load only #content children (this prevents creation of another table or div)
+            $('#bankContent').load(" #bankContent > *");
+        }
+        else {
+            // if failed - display error text
+            alert(data.text);
+        }
+    });
+    }
+}

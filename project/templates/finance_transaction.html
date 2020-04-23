@@ -6,79 +6,94 @@
 
 {% block main %}
     <div class="d-flex justify-content-center">
-        <form action="/finance/{{transaction.finance_id}}/{{transaction.id}}" method="post">
-
+        <form class="w-50" action="/finance/{{transaction.finance_id}}/{{transaction.id}}" method="post">
+            <h3>Transaction menu</h3>
+            <br>
             <div class="form-group row">
-                <div class="col-sm-4">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Status</label>
                 </div>
-                <div class="col-sm-8">
+                <div class="col-8">
                     {% if transaction.status == "Draft" %}
-                        <p class="form-control-plaintext badge badge-pill badge-secondary">{{transaction.status}}</p>
+                        <p class="col-4 form-control-plaintext badge badge-pill badge-secondary">{{transaction.status}}</p>
                     {% elif transaction.status == "New" %}
-                        <p class="form-control-plaintext badge badge-pill badge-primary">{{transaction.status}}</p>
+                        <p class="col-4 form-control-plaintext badge badge-pill badge-primary">{{transaction.status}}</p>
                     {% elif transaction.status == "Review" %}
-                        <p class="form-control-plaintext badge badge-pill badge-warning">{{transaction.status}}</p>
+                        <p class="col-4 form-control-plaintext badge badge-pill badge-warning">{{transaction.status}}</p>
                     {% elif transaction.status == "Accepted" %}
-                        <p class="form-control-plaintext badge badge-pill badge-success">{{transaction.status}}</p>
+                        <p class="col-4 form-control-plaintext badge badge-pill badge-success">{{transaction.status}}</p>
                     {% elif transaction.status == "Denied" %}
-                        <p class="form-control-plaintext badge badge-pill badge-danger">{{transaction.status}}</p>
+                        <p class="col-4 form-control-plaintext badge badge-pill badge-danger">{{transaction.status}}</p>
                     {% endif %}
                 </div>
             </div>
 
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Date</label>
+                </div>
+                <div class="col-8">
                     {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
-                        <input name="date" type="date" class="form-control" value="{{transaction.date}}">
+                        <input name="date" type="date" class="col-8 form-control" value="{{transaction.date}}">
                     {% else %}
-                        <input name="date" type="date" class="form-control" value="{{transaction.date}}" disabled>
+                        <input name="date" type="date" class="col-8 form-control" value="{{transaction.date}}" disabled>
                     {% endif %}
                 </div>
             </div>
 
+            <hr>
+
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Partner</label>
+                </div>
+                <div class="col-8">
                     {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
-                        <input name="partner" type="text" class="form-control" value="{{transaction.partner}}">
+                        <input name="partner" type="text" class="col-8 form-control" value="{{transaction.partner}}">
                     {% else %}
-                        <input name="partner" type="text" class="form-control" value="{{transaction.partner}}" disabled>
+                        <input name="partner" type="text" class="col-8 form-control" value="{{transaction.partner}}" disabled>
                     {% endif %}
                 </div>
             </div>
 
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Document Type</label>
+                </div>
+                <div class="col-8">
                     {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
-                        <input name="document_type" class="col-sm-6 custom-select custom-select" type="text" list="document_types" value="{{transaction.document_type}}">
+                        <input name="document_type" class="col-8 custom-select custom-select" type="text" list="document_types" value="{{transaction.document_type}}">
                         <datalist id="document_types">
                             {% for document_type in document_types %}
                                 <option>{{document_type}}</option>
                             {% endfor %}
                         </datalist>
                     {% else %}
-                        <input name="document_type" class="col-sm-6 custom-select custom-select" type="text" list="document_types" value="{{transaction.document_type}}" disabled>
+                        <input name="document_type" class="col-8 custom-select custom-select" type="text" list="document_types" value="{{transaction.document_type}}" disabled>
                     {% endif %}
                 </div>
             </div>
 
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Document Number</label>
+                </div>
+                <div class="col-8">
                     {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
-                        <input name="document_no" type="text" class="form-control" value="{{transaction.document_no}}">
+                        <input name="document_no" type="text" class="col-8 form-control" value="{{transaction.document_no}}">
                     {% else %}
-                        <input name="document_no" type="text" class="form-control" value="{{transaction.document_no}}" disabled>
+                        <input name="document_no" type="text" class="col-8 form-control" value="{{transaction.document_no}}" disabled>
                     {% endif %}
                 </div>
             </div>
 
+            <hr>
+
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Expense</label>
+                </div>
+                <div class="col-8">
                     {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
                         <input name="expense" type="text" class="form-control" value="{{transaction.expense}}">
                     {% else %}
@@ -88,30 +103,44 @@
             </div>
 
             <div class="form-group row">
-                <div class="col-auto">
+                <div class="col-4">
                     <label class="col-form-label font-weight-bold">Amount €</label>
-                    {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
-                        <input name="amount" type="number" step="0.01" min="0" class="form-control" value="{{transaction.amount}}">
-                    {% else %}
-                        <input name="amount" type="number" step="0.01" min="0" class="form-control" value="{{transaction.amount}}" disabled>
-                    {% endif %}
+                </div>
+                <div class="col-8">
+                    <div class="container">
+                        <div class="row justify-content-end">
+                            {% if transaction.status == "Draft" or session.role == "Admin" and transaction.fin_status != "Accepted" and transaction.fin_status != "Denied" and transaction.fin_status != "Paid" %}
+                                <input name="amount" type="number" step="0.01" min="0.00" class="col-4 form-control" value="{{transaction.amount}}">
+                            {% else %}
+                                <input name="amount" type="number" step="0.01" min="0.00" class="col-4 form-control" value="{{transaction.amount}}" disabled>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {% if session.role == "Admin" %}
                 <div class="form-group row">
-                    <div class="col-auto">
+                    <div class="col-4">
                         <label class="col-form-label font-weight-bold">Accepted €</label>
-                        {% if transaction.fin_status == "Accepted" or transaction.fin_status == "Denied" or transaction.fin_status == "Paid" %}
-                            <input name="paid_amount" type="number" step="0.01" min="0" class="form-control" value="{{transaction.paid_amount}}" disabled>
-                        {% elif transaction.paid_amount == -0.01 %}
-                            <input name="paid_amount" type="number" step="0.01" min="0" class="form-control" value="0.00">
-                        {% else %}
-                            <input name="paid_amount" type="number" step="0.01" min="0" class="form-control" value="{{transaction.paid_amount}}">
-                        {% endif %}
+                    </div>
+                    <div class="col-8">
+                        <div class="container">
+                            <div class="row justify-content-end">
+                                {% if transaction.fin_status == "Accepted" or transaction.fin_status == "Denied" or transaction.fin_status == "Paid" %}
+                                    <input name="paid_amount" type="number" step="0.01" min="0.00" class="col-4 form-control" value="{{transaction.paid_amount}}" disabled>
+                                {% elif transaction.paid_amount == -0.01 %}
+                                    <input name="paid_amount" type="number" step="0.01" min="0.00" class="col-4 form-control" value="0.00">
+                                {% else %}
+                                    <input name="paid_amount" type="number" step="0.01" min="0.00" class="col-4 form-control" value="{{transaction.paid_amount}}">
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             {% endif %}
+
+            <br>
 
             <div class="form-group row">
                 <div class="col-auto mr-auto">

@@ -34,3 +34,38 @@ body {
     align-items: center;
 }
 
+/* custom small buton sizes */
+.btn-size {
+    width: 50px;
+}
+
+.btn-size-med {
+    width: 60px;
+}
+
+/* font awesome images */
+.fas {
+    font-size: 30px;
+}
+
+.fa-check-square {
+    color: #5BC236;
+    cursor: pointer;
+}
+
+.fa-minus-square {
+    color: #E60000;
+    cursor: pointer;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-center {
+    text-align: center;
+}
+
+#inputBankActive {
+    height: 30px;
+}

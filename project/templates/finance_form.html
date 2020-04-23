@@ -138,12 +138,12 @@
                         <td>{{ transaction.paid_amount | eur}}</td>
                         <td class="text-right">
                         {% if finance.status == "Draft" %}
-                            <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">Edit</a>
+                            <a class="btn btn-success btn-sm btn-size-med" href="/finance/{{ finance.id }}/{{ transaction.id }}">Edit</a>
                             {% if transaction.status == "Draft" %}
-                                <button class="btn btn-danger btn-sm" type="button" onclick="myTransactionDelete({{ finance.id }}, {{ transaction.id }})">Delete</button>
+                                <button class="btn btn-danger btn-sm btn-size-med" type="button" onclick="myTransactionDelete({{ finance.id }}, {{ transaction.id }})">Delete</button>
                             {% endif %}
                         {% else %}
-                            <a class="btn btn-success btn-sm" href="/finance/{{ finance.id }}/{{ transaction.id }}">View</a>
+                            <a class="btn btn-success btn-sm btn-size-med" href="/finance/{{ finance.id }}/{{ transaction.id }}">View</a>
                         {% endif %}
                         </td>
                     </tr>
@@ -234,7 +234,7 @@
         {% if session.role == "Admin" %}
         <div class="form-group row">
             <div class="col-auto">
-                {% if finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" and finance.status != "New" %}
+                {% if finance.status != "Accepted" and finance.status != "Denied" and finance.status != "Paid" and finance.status != "New" and finance.status != "Draft" %}
                 <button class="btn btn-info center-block" type="submit">Save</button>
                 {% endif %}
                 {% if finance.status == "New" %}

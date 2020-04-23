@@ -51,7 +51,7 @@
                         <td><input id="inputBankCode" name="inputBankCode" class="form-control" type="text" placeholder="HABALV22"></td>
                         <td><input id="inputBankIBAN" name="inputBankIBAN" class="form-control" type="text" placeholder="LV44HABA0551001234567"></td>
                         <td><input id="inputBankActive" class="form-control" type="checkbox" checked></td>
-                        <td><button class="btn btn-sm btn-secondary" type="button" onclick="bankSubmit()">Add</button></td>
+                        <td><button class="btn btn-sm btn-secondary btn-size-med" type="button" onclick="bankSubmit()">Add</button></td>
                     </tr>
                     {% for bank in banks %}
                         <tr>
@@ -59,8 +59,8 @@
                             <td>{{ bank.bank_name }}</td>
                             <td>{{ bank.bank_code }}</td>
                             <td>{{ bank.bank_iban }}</td>
-                            <td>{% if bank.active == "true" %}Yes{% else %}No{% endif %}</td>
-                            <td><button class="btn btn-sm btn-danger" type="button" onclick="bankDelete({{ bank.id }})">Delete</button></td>
+                            <td class="table-center">{% if bank.active == "true" %}<i class="fas fa-check-square" onclick="changeDefault({{bank.id}})"></i>{% else %}<i class="fas fa-minus-square" onclick="changeDefault({{bank.id}})"></i>{% endif %}</td>
+                            <td><button class="btn btn-sm btn-outline-danger btn-size-med" type="button" onclick="bankDelete({{ bank.id }})">Delete</button></td>
                         </tr>
                     {% endfor %}
                 </tbody>

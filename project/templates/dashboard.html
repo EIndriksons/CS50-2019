@@ -16,7 +16,7 @@
                     <th>Date</th>
                     <th>User</th>
                     <th>Number</th>
-                    <th>Status</th>
+                    <th class="table-center">Status</th>
                     <th>Count</th>
                     <th>Amount</th>
                     <th>Paid Amount</th>
@@ -31,23 +31,27 @@
                         <td>{{ review.user }}</td>
                         <td>{{ review.number }}</td>
                         {% if review.status == "Draft" %}
-                            <td><span class="badge badge-pill badge-secondary">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-secondary">{{ review.status }}</span></td>
                         {% elif review.status == "New" %}
-                            <td><span class="badge badge-pill badge-primary">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-primary">{{ review.status }}</span></td>
                         {% elif review.status == "Review" %}
-                            <td><span class="badge badge-pill badge-warning">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-warning">{{ review.status }}</span></td>
                         {% elif review.status == "Accepted" or review.status == "Paid" %}
-                            <td><span class="badge badge-pill badge-success">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-success">{{ review.status }}</span></td>
                         {% elif review.status == "Denied" %}
-                            <td><span class="badge badge-pill badge-danger">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-danger">{{ review.status }}</span></td>
                         {% else %}
-                            <td><span class="badge badge-pill badge-light">{{ review.status }}</span></td>
+                            <td class="table-center"><span class="badge badge-pill badge-light">{{ review.status }}</span></td>
                         {% endif %}
                         <td>{{ review.count }}</td>
                         <td>{{ review.total_amount | eur}}</td>
                         <td>{{ review.total_paid_amount | eur}}</td>
                         <td class="text-right">
-                            <a class="btn btn-info btn-sm" href="/finance/{{ review.id }}">Edit</a>
+                            {% if review.status == "Draft" %}
+                                <a class="btn btn-info btn-sm btn-size" href="/finance/{{ review.id }}">Edit</a>
+                            {% else %}
+                                <a class="btn btn-info btn-sm btn-size" href="/finance/{{ review.id }}">View</a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
@@ -65,7 +69,7 @@
                 <th>Date</th>
                 <th>User</th>
                 <th>Number</th>
-                <th>Status</th>
+                <th class="table-center">Status</th>
                 <th>Count</th>
                 <th>Amount</th>
                 <th>Paid Amount</th>
@@ -80,23 +84,27 @@
                     <td>{{ finance.user }}</td>
                     <td>{{ finance.number }}</td>
                     {% if finance.status == "Draft" %}
-                        <td><span class="badge badge-pill badge-secondary">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-secondary">{{ finance.status }}</span></td>
                     {% elif finance.status == "New" %}
-                        <td><span class="badge badge-pill badge-primary">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-primary">{{ finance.status }}</span></td>
                     {% elif finance.status == "Review" %}
-                        <td><span class="badge badge-pill badge-warning">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-warning">{{ finance.status }}</span></td>
                     {% elif finance.status == "Accepted" or finance.status == "Paid" %}
-                        <td><span class="badge badge-pill badge-success">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-success">{{ finance.status }}</span></td>
                     {% elif finance.status == "Denied" %}
-                        <td><span class="badge badge-pill badge-danger">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-danger">{{ finance.status }}</span></td>
                     {% else %}
-                        <td><span class="badge badge-pill badge-light">{{ finance.status }}</span></td>
+                        <td class="table-center"><span class="badge badge-pill badge-light">{{ finance.status }}</span></td>
                     {% endif %}
                     <td>{{ finance.count }}</td>
                     <td>{{ finance.total_amount | eur}}</td>
                     <td>{{ finance.total_paid_amount | eur}}</td>
                     <td class="text-right">
-                        <a class="btn btn-info btn-sm" href="/finance/{{ finance.id }}">Edit</a>
+                        {% if finance.status == "Draft" %}
+                            <a class="btn btn-info btn-sm btn-size" href="/finance/{{ finance.id }}">Edit</a>
+                        {% else %}
+                            <a class="btn btn-info btn-sm btn-size" href="/finance/{{ finance.id }}">View</a>
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
