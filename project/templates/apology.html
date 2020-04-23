@@ -1,9 +1,13 @@
 {% extends "layout.html" %}
 
-{% block title %}
-    Apology
-{% endblock %}
+{% block title %}: Apology{% endblock %}
 
 {% block main %}
-    <img alt="{{ top }}" class="border" src="http://memegen.link/custom/{{ top | urlencode }}/{{ bottom | urlencode }}.jpg?alt=https://i.imgur.com/CsCgN7Ll.png" title="{{ top }}">
+    <div class="logreg">
+        <h1 class="font-weight-bold">Error: {{ top }}</h1>
+        <br>
+        <img src="https://media.giphy.com/media/l2Jei5Pqk5U8YN3dm/giphy.gif" alt="animated"/>
+        <br>
+        <p class="font-weight-bold error">{{bottom}}</p>
+    </div>
 {% endblock %}

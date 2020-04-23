@@ -46,11 +46,9 @@ $(function() {
                 maxlength : 11
             },
             password_new_1 : {
-                required : true,
                 strongPassword : true
             },
             password_new_2 : {
-                required : true,
                 equalTo : '#password_new_1'
             },
             inputBank : {

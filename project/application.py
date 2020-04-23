@@ -46,6 +46,7 @@ db = SQL("sqlite:///project.db")
 @app.route("/")
 def index():
 
+    # set default routes for users
     try:
         if session["role"] == "Admin":
             return redirect('/dashboard')
@@ -83,6 +84,7 @@ def finance():
 
     else:
 
+        # query data for template render
         finances = db.execute("""
             SELECT f.id,
                 case when f.date is null then '-' else f.date end as date,
@@ -108,17 +110,41 @@ def finance_form(finance_id):
     """ Individual Finance Form """
 
     # check if the user can access this portion
-    user_id = db.execute("SELECT user_id FROM Finance WHERE id=:finance_id", finance_id=finance_id)
+    user_id = db.execute("SELECT user_id, status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
 
     if session["user_id"] == user_id[0]["user_id"] or session["role"] == 'Admin':
 
         if request.method == "POST":
 
-            # checking if the user is Admin for full form UPDATE
+            # checking if the user is admin for full form update
             if session["role"] == 'Admin':
 
-                # UPDATE for Finance Form information
-                finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
+                # if im admin and submitting my own form then allow bank access, otherwise forbid
+                if session["user_id"] == user_id[0]["user_id"] and user_id[0]["status"] == "Draft":
+
+                    # query values for bank accounts
+                    bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]
+
+                    # update finance form
+                    finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
+                        number=request.form.get("number"),
+                        date=request.form.get("date"),
+                        text=request.form.get("text"),
+                        paid_bank_name=bank["bank_name"],
+                        paid_bank_code=bank["bank_code"],
+                        paid_bank_iban=bank["bank_iban"],
+                        name_director=request.form.get("name_director"),
+                        name_accountant=request.form.get("name_accountant"),
+                        finance_id=finance_id)
+
+                    if not finance:
+                        return apology("finance form update failed", 400)
+
+                # this form does not belong to the admin
+                else:
+
+                    # update finance form
+                    finance = db.execute("UPDATE Finance SET number=:number, date=:date, text=:text, name_director=:name_director, name_accountant=:name_accountant WHERE id=:finance_id",
                         number=request.form.get("number"),
                         date=request.form.get("date"),
                         text=request.form.get("text"),
@@ -126,25 +152,48 @@ def finance_form(finance_id):
                         name_accountant=request.form.get("name_accountant"),
                         finance_id=finance_id)
 
-            # if user is not Admin
+                    if not finance:
+                        return apology("finance form update failed", 400)
+
+
+            # if user is not admin we allow only partly form update
             else:
 
-                # get values for the bank accounts
-                bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))[0]
+                # query values for bank accounts
+                bank = db.execute("SELECT bank_name, bank_code, bank_iban FROM Bank WHERE id=:bank_id", bank_id=request.form.get("bank_id"))
 
+                # user has no bank accounts - submit without
+                if not bank:
+                    # update finance form
+                    finance = db.execute("UPDATE Finance SET date=:date, text=:text WHERE id=:finance_id",
+                        date=request.form.get("date"),
+                        text=request.form.get("text"),
+                        finance_id=finance_id)
+
+                    if not finance:
+                        return apology("finance form update failed", 400)
+
+                    # redirect to the same finance form
+                    return redirect("/finance/" + str(finance_id))
+
+                # update finance form
                 finance = db.execute("UPDATE Finance SET date=:date, text=:text, paid_bank_name=:paid_bank_name, paid_bank_code=:paid_bank_code, paid_bank_iban=:paid_bank_iban WHERE id=:finance_id",
                     date=request.form.get("date"),
                     text=request.form.get("text"),
-                    paid_bank_name=bank["bank_name"],
-                    paid_bank_code=bank["bank_code"],
-                    paid_bank_iban=bank["bank_iban"],
+                    paid_bank_name=bank[0]["bank_name"],
+                    paid_bank_code=bank[0]["bank_code"],
+                    paid_bank_iban=bank[0]["bank_iban"],
                     finance_id=finance_id)
 
+                if not finance:
+                    return apology("finance form update failed", 400)
+
+            # redirect to the same finance form
             return redirect("/finance/" + str(finance_id))
 
         else:
 
-            # SELECT for Finance Form information and list of Transactions
+            # query data for template render
             finance = db.execute("""
                 SELECT
                     f.id,
@@ -204,7 +253,6 @@ def finance_form(finance_id):
 
             if len(banks) == 0:
                 errors.append('Please enter bank account information in settings')
-
 
             # check for admin errors
             admin_errors = []
@@ -268,7 +316,7 @@ def finance_status_change():
 
         change = request.form.get("change")
 
-        # on submit
+        # if post indicates submit
         if change == 'submit':
 
             # check if the form is already submitted
@@ -287,14 +335,13 @@ def finance_status_change():
 
             elif status[0]["status"] == "Review" or status[0]["status"] == "Accepted" or status[0]["status"] == "Denied" or status[0]["status"] == "Paid":
 
-                # form is in a later status stage, therefore ineligible
+                # form is in a later status stage therefore ineligible
                 return jsonify(submit=False, text="You cannot submit this form because it is already Submitted!")
 
             else:
 
                 # form is not submited
                 # check if all transactions are submited
-
                 transactions = db.execute("SELECT status FROM Transactions WHERE finance_id=:finance_id", finance_id = finance_id)
                 for transaction in transactions:
                     if transaction["status"] != "New":
@@ -309,7 +356,7 @@ def finance_status_change():
                     return jsonify(submit=False, text="Database UPDATE failed")
                 return jsonify(submit=True)
 
-        # on delete
+        # if post indicates delete
         if change == 'delete':
 
             form = db.execute("SELECT user_id, status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
@@ -322,7 +369,7 @@ def finance_status_change():
 
             if session["role"] != "Admin":
 
-                # if the form is in Draft and New state it can be deleted by anyone
+                # if the form is in draft and new state it can be deleted by anyone
                 if form[0]["status"] == "Draft" or form[0]["status"] == "New":
 
                     delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
@@ -337,7 +384,7 @@ def finance_status_change():
 
             elif session["role"] == "Admin":
 
-                # admins have permission to delete any form
+                # admins have permission to delete any form in any stage
                 delete = db.execute("DELETE FROM Finance WHERE id=:finance_id", finance_id=finance_id)
                 db.execute("DELETE FROM Transactions WHERE finance_id=:finance_id", finance_id=finance_id)
 
@@ -358,7 +405,7 @@ def finance_admin_status_change():
     finance_id = request.form.get("financeId")
     change = request.form.get("change")
 
-    # on assign
+    # if post indicates assign
     if change == 'assign':
 
         # check if there are any transactions before review
@@ -381,13 +428,13 @@ def finance_admin_status_change():
             return jsonify(assign=False, text="Database UPDATE failed!")
         return jsonify(assign=True)
 
-    # on status change
+    # if post indicates status change
     if change == 'status':
 
         status = request.form.get("status")
         if status == "Accepted" or status == "Denied":
 
-            # make sure that form is under review, accepted or denied
+            # make sure that the form is under review, accepted or denied
             status_change = db.execute("SELECT status FROM Finance WHERE id=:finance_id", finance_id=finance_id)
             if status_change[0]["status"] != "Review" and status_change[0]["status"] != "Accepted" and status_change[0]["status"] != "Denied":
                 return jsonify(status=False, text="Form is not under Review, Accepted or Denied!")
@@ -407,11 +454,11 @@ def finance_admin_status_change():
             if status == "Accepted" and accepted < 1:
                 return jsonify(status=False, text="Cannot Accept if there are no Accepted Transactions!")
 
-            #        or if the form is denied then all transactions should be denied too
+            # or if the form is denied then all transactions should be denied too
             if status == "Denied" and accepted > 0:
                 return jsonify(status=False, text="Cannot Deny if there are no Denied Transactions!")
 
-            # UPDATE database
+            # update database
             update = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
                             status = status,
                             finance_id = finance_id)
@@ -427,7 +474,7 @@ def finance_admin_status_change():
             if status_change[0]["status"] != "Review" and status_change[0]["status"] != "Accepted" and status_change[0]["status"] != "Denied":
                 return jsonify(status=False, text="Form is not under Review, Accepted or Denied!")
 
-            # UPDATE database
+            # update database
             update = db.execute("UPDATE Finance SET status = :status WHERE id=:finance_id",
                         status = status,
                         finance_id = finance_id)
@@ -435,8 +482,7 @@ def finance_admin_status_change():
             if not update:
                 return jsonify(status=False, text="Database UPDATE failed!")
 
-            # UPDATE accepted transactions
-
+            # update accepted transactions
             update = db.execute("UPDATE Transactions SET status = :status WHERE finance_id=:finance_id and status='Accepted'",
                 status=status,
                 finance_id=finance_id)
@@ -466,11 +512,12 @@ def transaction(finance_id, transaction_id):
             if session["role"] == "Admin":
                 paid_amount = request.form.get("paid_amount")
 
+                # check if the accepted amount is not larger than the actual amount
                 amount = db.execute("SELECT amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)[0]["amount"]
                 if float(paid_amount) > float(amount):
                     return apology("accepted amount cannot be larger than original amount", 400)
 
-                # UPDATE for Transaction information
+                # update for transaction information
                 transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount, paid_amount=:paid_amount WHERE id=:transaction_id",
                     date=request.form.get("date"),
                     partner=request.form.get("partner"),
@@ -486,7 +533,7 @@ def transaction(finance_id, transaction_id):
 
             else:
 
-                # UPDATE for Transaction information
+                # update for transaction information
                 transaction = db.execute("UPDATE Transactions SET date=:date, partner=:partner, expense=:expense, document_type=:document_type, document_no=:document_no, amount=:amount WHERE id=:transaction_id",
                     date=request.form.get("date"),
                     partner=request.form.get("partner"),
@@ -503,7 +550,7 @@ def transaction(finance_id, transaction_id):
 
         else:
 
-            # SELECT for finance transaction information
+            # query data for template render
             transaction = db.execute("""
                 SELECT
                     t.id,
@@ -574,7 +621,7 @@ def transaction_status_change():
         transaction_id = request.form.get("transactionId")
         change = request.form.get("change")
 
-        # on submit
+        # if post indicates submit
         if change == 'submit':
 
             # check if eligible for submission
@@ -608,7 +655,7 @@ def transaction_status_change():
                     return jsonify(submit=False, text="Database UPDATE failed!")
                 return jsonify(submit=True)
 
-        # on delete
+        # if post indicates delete
         if change == 'delete':
 
             transaction = db.execute("SELECT f.user_id, t.status FROM Finance f LEFT JOIN Transactions t ON t.finance_id = f.id WHERE t.id=:transaction_id", transaction_id=transaction_id)
@@ -621,7 +668,7 @@ def transaction_status_change():
 
             if session["role"] != "Admin":
 
-                # if the transaction is in Draft and New state it can be deleted by anyone
+                # if the transaction is in draft and new state it can be deleted by anyone
                 if transaction[0]["status"] == "Draft" or transaction[0]["status"] == "New":
 
                     delete = db.execute("DELETE FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
@@ -670,12 +717,12 @@ def transaction_admin_status_change():
         status_check = db.execute("SELECT status, amount FROM Transactions WHERE id=:transaction_id", transaction_id=transaction_id)
         if status_check[0]["status"] == "Review" or status_check[0]["status"] == "Accepted" or status_check[0]["status"] == "Denied":
 
-            # UPDATE database
+            # update database
             status_change = db.execute("UPDATE Transactions SET status = :status WHERE id=:transaction_id",
                             status = status,
                             transaction_id = transaction_id)
 
-            # if accepted UPDATE paid_amount
+            # if accepted update paid_amount
             if status == "Accepted":
                 db.execute("UPDATE Transactions SET paid_amount=:paid_amount WHERE id=:transaction_id",
                     paid_amount=status_check[0]["amount"],
@@ -699,6 +746,7 @@ def transaction_admin_status_change():
 def dashboard():
     """ Admin Finance Form board"""
 
+    # query data for template render
     dashboards = db.execute("""
         SELECT
             f.id,
@@ -798,8 +846,10 @@ def settings():
             return redirect('/settings')
 
         else:
+
             # if password change is not required - UPDATE the rest of the fields if required
             if request.form.get("email") == info[0]["email"] and request.form.get("personal_code") == info[0]["personal_code"] and request.form.get("name") == info[0]["name"] and request.form.get("surname") == info[0]["surname"]:
+
                 # no change - database UPDATE not required
                 return redirect('/settings')
 
@@ -933,7 +983,7 @@ def admin_settings():
 
     if request.method == "POST":
 
-        # SANITIZE INPUTS
+        # update database
         db.execute("INSERT INTO Settings (name_director, name_accountant, document_types) VALUES (:name_director, :name_accountant, :document_types)",
             name_director=request.form.get("name_director"),
             name_accountant=request.form.get("name_accountant"),
@@ -943,6 +993,7 @@ def admin_settings():
 
     else:
 
+        # query data for template render
         info = db.execute("SELECT name_director, name_accountant, document_types FROM Settings ORDER BY id desc LIMIT 1")
         return render_template("settings_admin.html", info=info[0])
 
@@ -1001,6 +1052,7 @@ def register():
 @app.route("/register_email_validation", methods=["GET"])
 def register_email_validation():
 
+    # quick email validation for register page
     email = request.args.get("email")
     available = db.execute("SELECT email FROM Users WHERE email=:email", email=email)
     if not available:
@@ -1036,6 +1088,7 @@ def registration():
 
     else:
 
+        # query data for template render
         users = db.execute("SELECT id, createdate, email, name || ' ' || surname as name, status FROM Users WHERE role != 'Admin' ORDER BY createdate desc")
         return render_template("registration.html", users=users)
 
