@@ -26,6 +26,6 @@ ScoutFin is a web application built in Flask to help manage a small company or N
       1. If the form is "Accepted", and the money is reimbursed in real life, the status can then be changed to "Paid".
 
 ## Setup:
-Setup is very simple and only requires the creation of a database with the respective tables and triggers. This is done by running the **[setup.py](/setup.py)** file which creates "project.db" file in the project location.
+Setup is very simple and only requires the creation of a database with the respective tables and triggers. This is done by running the **[setup.py](/project/setup.py)** file which creates "project.db" file in the project location.
 
 Admin user access is given through a manual database UPDATE by changing User 'role' to 'Admin' and 'status' to 'Accepted'. Otherwise, the registration process works as intended.
