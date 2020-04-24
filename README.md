@@ -42,4 +42,4 @@ If you are a student of this course - please see the Course guidelines on [Acade
   * [Survey](/pset7/survey) - Implement a website that enables an user to fill a form and submit to a CSV file (Web Forms, Frontend-Backend Communication)
 - [Problem Set 8:](/pset8)
   * [Finance](/pset8/finance) - Implement a fully functional website where users can register and login to "buy" and "sell" virtual stocks based on actual price from a provided API in Flask with an Sqlite database (Web Development, Databases, API Requests)
-- [Final Project [Unfinished]](/project)
+- [Final Project - ScoutFin](/project) - Web application built in Flask to help manage a small company or NGO business expenses towards its employees. It provides an efficient workflow that allows the user (employee) to register and submit work-related expenses which then are reviewed, accepted, or denied by the admin (manager).
