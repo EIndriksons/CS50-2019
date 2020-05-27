@@ -2,6 +2,8 @@
 
 ScoutFin is a web application built in Flask to help manage a small company or NGO business expenses towards its employees. It provides an efficient workflow that allows the user (employee) to register and submit work-related expenses which then are reviewed, accepted, or denied by the admin (manager).
 
+See build log in Trello: [www.trello.com/dev-cs50-project-finance](https://trello.com/b/WC3h0emA/dev-cs50-project-finance)
+
 ## Features Include:
 - **Efficient Workflow** - The user is guided to create a business expense form in which he adds expense transactions and fills in all of the necessary fields. The form then gets submitted for review by the admins, who can adjust, correct, and fill in the remaining information giving their final decision to either accept or reject the expense form. This is achieved through a list of form and individual transaction statuses beginning from "Draft" all the way to the final status of "Accepted", "Paid" or "Denied".
 - **Registration Whitelist** - Because this is designed for small organizations, new users must be accepted by the admins to give them access to the system in order to prevent spam or malicious use.
